@@ -37,6 +37,7 @@ module Parser where
     getTokeType e
         | e == "+" = Arithmetic e
         | e == "&&" = Logical e
+        | (e == "pop" || e == "swap" || e == "dup") = StackOp e
         | checkLiteral e == True = Literal e
         | otherwise = TokenError e
 

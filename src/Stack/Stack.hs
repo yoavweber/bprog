@@ -1,17 +1,12 @@
-module Stack where
+module Stack.Stack (
+    stackManip
+ ) where
     import Control.Monad.State
-
     import Types
+    import Operations.StackOp
 
+    import Stack.StackOperations
 
-    pop :: State Stack (TokenType String)
-    pop = state $ \(x:xs) -> (x,xs)
-
-    push :: TokenType String -> State Stack ()
-    push a = state $ \xs -> ((),a:xs)
-
-    pick ::  State Stack (TokenType String)
-    pick = state $ \(x:xs) -> (x,x:xs)
 
 
     stackManip ::  ProgState
@@ -33,6 +28,7 @@ module Stack where
     handleTokens :: TokenType String -> State Stack ()
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic (Arithmetic t)
+        StackOp t -> handleStackOp (StackOp t)
         otherwise -> return ()
         
 

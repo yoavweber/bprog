@@ -3,8 +3,7 @@ module Main where
 import Control.Monad.State
 import Parser
 import Types
-import Stack
-
+import Stack.Stack
 
     
 updateState :: Stack -> IO()

@@ -3,16 +3,20 @@ module Stack.Stack (
  ) where
     import Control.Monad.State
     import Types
-    import Operations.StackOp
 
+    import Operations.StackOp
+    import Operations.Arithmetic
+    import Operations.ListOp
     import Stack.StackOperations
 
 
 
     stackManip ::  ProgState
     stackManip = do
-        stackNow <- get
-        changeState stackNow
+        currentStack <- get
+        let removeTokens = (filter (\token -> removeOp token) currentStack )
+        put removeTokens 
+        changeState currentStack
         newStack <- get
         return newStack
 
@@ -29,12 +33,12 @@ module Stack.Stack (
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic (Arithmetic t)
         StackOp t -> handleStackOp (StackOp t)
+        ListOp t -> handleListOp t
         otherwise -> return ()
         
 
-
-    -- create a folder for all aritmic operations and move this function
-    handleAritmic :: TokenType String -> State Stack ()
-    handleAritmic t = case t of
-        Arithmetic "+" -> return ()
-        otherwise ->  put [Arithmetic "1"]
+    removeOp :: TokenType a -> Bool
+    removeOp token = case token of
+        Literal _ -> True
+        List _ -> True
+        otherwise -> False

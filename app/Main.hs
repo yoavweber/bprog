@@ -9,10 +9,15 @@ import Stack.Stack
 updateState :: Stack -> IO()
 updateState previousStack = do
     line <- getLine
-    let tokenize = map (\e -> getTokeType e) $ words line
-    let stack =  tokenize ++ previousStack
+    let rawList = words line
+    let tokenizeList = map (\e -> getTokeType e) $ tokenize rawList
+    print $ (tokenizeList, "Tokenize List") 
+    let stack =  tokenizeList ++ previousStack
+
+    print $ (stack, "stack before manipulation")
     let y = (execState stackManip) stack
-    print $ y
+    print $ (y, "stack after manipulation")
+    print $ (y !! 0, "stack top value")
     updateState y
 
 

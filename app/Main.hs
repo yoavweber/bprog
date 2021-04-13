@@ -5,20 +5,22 @@ import Parser
 import Types
 import Stack.Stack
 
-    
 updateState :: Stack -> IO()
 updateState previousStack = do
+    print $ (previousStack, "Previoues stack") 
     line <- getLine
-    let rawList = words line
-    let tokenizeList = map (\e -> getTokeType e) $ tokenize rawList
-    print $ (tokenizeList, "Tokenize List") 
-    let stack =  tokenizeList ++ previousStack
+    let newStack = executeCode line previousStack
+    print $ (newStack, "stack after manipulation")
+    print $ ( newStack !! 0, "stack top value")
+    updateState (newStack)
 
-    print $ (stack, "stack before manipulation")
-    let y = (execState stackManip) stack
-    print $ (y, "stack after manipulation")
-    print $ (y !! 0, "stack top value")
-    updateState y
+
+
+executeCode :: String -> Stack -> Stack
+executeCode line previousStack = 
+    let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
+    in execState stackManip stack
+
 
 
 

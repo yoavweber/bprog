@@ -7,11 +7,11 @@ module Stack.StackOperations (
 
     import Types
 
-    pop :: State Stack (TokenType String)
+    pop :: State Stack (StackElement)
     pop = state $ \(x:xs) -> (x,xs)
 
-    push :: TokenType String -> State Stack ()
+    push :: StackElement -> State Stack ()
     push a = state $ \xs -> ((),a:xs)
 
-    pick ::  State Stack (TokenType String)
+    pick ::  State Stack (StackElement)
     pick = state $ \(x:xs) -> (x,x:xs)

@@ -36,7 +36,7 @@ module Stack.Stack (
         changeState xs
 
 
-    handleTokens :: TokenType String -> State Stack ()
+    handleTokens :: StackElement -> State Stack ()
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic (Arithmetic t)
         StackOp t -> handleStackOp (StackOp t)
@@ -59,7 +59,7 @@ module Stack.Stack (
         "exec" -> handleExecution 
     
 
-    executeCodeLine :: String -> Stack -> TokenType String
+    executeCodeLine :: String -> Stack -> StackElement
     executeCodeLine line previousStack = 
         let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
         in (execState stackManip stack) !! 0

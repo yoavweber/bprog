@@ -16,14 +16,6 @@ updateState previousStack = do
 
 
 
-executeCode :: String -> Stack -> Stack
-executeCode line previousStack = 
-    let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
-    in execState stackManip stack
-
-
-
-
 main = do
     updateState []
 

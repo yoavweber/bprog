@@ -7,13 +7,23 @@ module Types where
         | StackString String
         | StackFloat   Float
         | StackBool   Bool
-        | StackOps String deriving(Show,Eq)
+        | Lists     [StackLiteral]
+
+    data Ops
+        = Arithmetics String
+        | Logicals String
+        | ControlFlows String
+        | StackOps  String
+        | Literals StackLiteral
+     
     
     -- data List a = StackLiteral | List1 [List a]
     
     data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
+    -- data TokenType a = Ops a | Literal a | List [a] | Exec a | StackOp a | ListOp a | TokenError a deriving(Show)
+
     type Stack = [StackElement]
-    type StackElement =  TokenType String
+    type StackElement =  Ops
 
     instance Functor TokenType where  
         fmap f (Literal a) = Literal (f a)  
@@ -25,6 +35,12 @@ module Types where
         (Literal a) <*> f = fmap a f
         Exec a <*> f = fmap a f
         -- (List a) <*> f = [fmap a f]
+
+    
+    -- instance Show (StackLiteral) where
+    --     show (StackInt a) = show a
+    --     show (StackString a) =  a
+
 
 
     type ProgState = State Stack (Stack)

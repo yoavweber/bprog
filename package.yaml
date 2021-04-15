@@ -37,6 +37,7 @@ executables:
     dependencies:
       - bprog
       - mtl
+      - split
 
 tests:
   bprog-test:
@@ -48,3 +49,4 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - bprog
+      - hspec

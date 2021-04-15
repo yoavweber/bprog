@@ -38,18 +38,18 @@ module Stack.Stack (
 
     handleTokens :: StackElement -> State Stack ()
     handleTokens t = case t of
-        Arithmetic t ->  handleAritmic (Arithmetic t)
-        StackOp t -> handleStackOp (StackOp t)
-        ListOp t -> handleListOp t
-        ControlFlow t -> handleControlFlow t
+        Arithmetics t ->  handleAritmic (Arithmetics t)
+        -- StackOp t -> handleStackOp (StackOp t)
+        -- ListOp t -> handleListOp t
+        ControlFlows t -> handleControlFlow t
         otherwise -> return ()
         
 
-    removeOp :: TokenType a -> Bool
+    removeOp :: Ops -> Bool
     removeOp token = case token of
-        Literal _ -> True
-        List _ -> True
-        Exec _ -> True
+        Literals _ -> True
+        -- List _ -> True
+        -- Exec _ -> True
         otherwise -> False
     
 
@@ -67,8 +67,8 @@ module Stack.Stack (
 
     handleExecution :: State Stack ()
     handleExecution = do
-        executionLine <- pop
-        let command = unWrap executionLine
-        let res = executeCodeLine command []
-        push (res)
+        -- executionLine <- pop
+        -- let command = unWrap executionLine
+        -- let res = executeCodeLine command []
+        -- push (res)
         return ()

@@ -8,7 +8,7 @@ module Operations.ListOp where
     handleListOp :: String -> State Stack ()
     handleListOp t = case t of 
         "head" -> handleHead
-        "length" -> handleLength
+        -- "length" -> handleLength
 
     handleHead :: State Stack ()
     handleHead = do
@@ -16,11 +16,11 @@ module Operations.ListOp where
         -- push $ head' list
         return ()
 
-    handleLength :: State Stack ()
-    handleLength = do
-        list <- pop
-        -- push $ length' list
-        return ()
+    -- handleLength :: State Stack ()
+    -- handleLength = do
+    --     list <- pop
+    --     -- push $ length' list
+    --     return ()
 
 
 
@@ -32,19 +32,21 @@ module Operations.ListOp where
     --     push $ head' list
     --     return ()
 
-    head' :: TokenType [a] -> TokenType [a]
-    head' x = case x of
-        List l -> Literal (head l)
+    head' :: [StackLiteral]  -> StackLiteral 
+    head' x = head x 
+        
+        -- case x of
+        -- List l -> StackString (head l)
 
 
-    tail' :: TokenType [a] -> TokenType [a]
-    tail' x = case x of
-        List l -> Literal (head $ reverse l)
+    -- tail' :: TokenType [a] -> TokenType [a]
+    -- tail' x = case x of
+    --     List l -> Literal (head $ reverse l)
 
     
-    length' :: TokenType [a] -> StackElement
-    length' x = case x of
-        List l -> Literal (show $ length l)
+    -- length' :: TokenType [a] -> StackElement
+    -- length' x = case x of
+    --     List l -> Literal (show $ length l)
             
             
 

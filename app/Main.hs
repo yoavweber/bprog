@@ -7,11 +7,11 @@ import Stack.Stack
 
 updateState :: Stack -> IO()
 updateState previousStack = do
-    print $ (previousStack, "Previoues stack") 
+    -- print $ (previousStack, "Previoues stack") 
     line <- getLine
     let newStack = executeCode line previousStack
-    print $ (newStack, "stack after manipulation")
-    print $ ( newStack !! 0, "stack top value")
+    -- print $ (newStack, "stack after manipulation")
+    -- print $ ( newStack !! 0, "stack top value")
     updateState (newStack)
 
 

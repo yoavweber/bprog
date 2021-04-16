@@ -41,4 +41,5 @@ module Operations.Arithmetic where
         -- let res =  ((++) <$> a <*> b) 
         -- push res
         -- return()
-
+    -- checkAritmic :: a -> a -> Maybe a
+    -- checkAritmic a b = do

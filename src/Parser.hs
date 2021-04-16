@@ -66,13 +66,13 @@ module Parser where
         | (head e) == '\"' = StackString e
         | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   (StackBool (read e :: Bool) )
         -- otherwise = StackLiteral
-        -- | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
-        --     Nothing -> Literal (StackString e) -- this is an assignment
-        --     Just n -> Literal (StackFloat n)
-        -- | intOrFloat e == "int" = case readMaybe e :: Maybe Float of
-        --     Nothing -> Literal (StackString e) -- this is an assignment
-        --     Just n -> Literal (StackFloat n)
-        -- | otherwise = Literal (StackString e) -- this is an assignment
+        | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
+            Nothing -> StackString e -- this is an assignment
+            Just n -> StackFloat n
+        | intOrFloat e == "int" = case readMaybe e :: Maybe Int of
+            Nothing -> StackString e -- this is an assignment
+            Just n -> StackInt n
+        | otherwise = StackString e -- this is an assignment
 
         -- | (readMaybe e :: Maybe Float ) /= Nothing = Literal (StackFloat e)
         -- | (readMaybe e :: Maybe Int ) == Just (read e :: Int) = Literal (StackInt e)

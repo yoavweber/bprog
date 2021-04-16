@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Operations.Arithmetic where
+    import Text.Read (readMaybe)
     import Control.Monad.State
     import Control.Monad
 

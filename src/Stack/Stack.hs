@@ -38,17 +38,17 @@ module Stack.Stack (
 
     handleTokens :: StackElement -> State Stack ()
     handleTokens t = case t of
-        Arithmetics t ->  handleAritmic (Arithmetics t)
+        Arithmetics t ->  handleAritmic  (Arithmetics t)
         -- StackOp t -> handleStackOp (StackOp t)
         -- ListOp t -> handleListOp t
-        ControlFlows t -> handleControlFlow t
+        -- ControlFlows t -> handleControlFlow t
         otherwise -> return ()
         
 
-    removeOp :: Ops -> Bool
+    removeOp :: StackElement -> Bool
     removeOp token = case token of
+        -- Literal _ -> True
         Literals _ -> True
-        -- List _ -> True
         -- Exec _ -> True
         otherwise -> False
     

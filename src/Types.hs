@@ -8,6 +8,7 @@ module Types where
         | StackFloat   Float
         | StackBool   Bool
         | Lists     [StackLiteral]
+        deriving(Show)
 
     data Ops
         = Arithmetics String
@@ -15,15 +16,16 @@ module Types where
         | ControlFlows String
         | StackOps  String
         | Literals StackLiteral
+        deriving(Show)
      
     
     -- data List a = StackLiteral | List1 [List a]
     
-    data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
-    -- data TokenType a = Ops a | Literal a | List [a] | Exec a | StackOp a | ListOp a | TokenError a deriving(Show)
+    -- data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
+    data TokenType a = Op a | Literal a | List [a] | Exec a | StackOp a | ListOp a | TokenError a deriving(Show)
 
     type Stack = [StackElement]
-    type StackElement =  Ops
+    type StackElement = Ops
 
     instance Functor TokenType where  
         fmap f (Literal a) = Literal (f a)  
@@ -40,7 +42,9 @@ module Types where
     -- instance Show (StackLiteral) where
     --     show (StackInt a) = show a
     --     show (StackString a) =  a
-
+    -- instance (Show a) => Show (TokenType a) where
+        -- show (Op a)= show a
+        -- show (Branch v l r) = "(left: " ++ show l ++ ") " ++ show v ++ " (right: " ++ show r ++ ")"
 
 
     type ProgState = State Stack (Stack)

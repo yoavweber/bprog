@@ -37,6 +37,7 @@ module Parser where
     slice :: Int -> Int -> [a] -> [a]
     slice start stop xs = fst $ splitAt (stop - start) (snd $ splitAt start xs)
 
+    
     getTokenType :: String -> StackElement
     getTokenType e
         | e == "+" = Arithmetics e
@@ -48,15 +49,44 @@ module Parser where
         -- -- | (head e) == '[' =  List ([e])
         -- | e == "exec" = ControlFlow e 
         -- | (head e) == '{' = Exec (tail $ init e)
-        -- | checkLiteral e == True = Literal e
+        | checkLiteral e == True = Literals (assignLiteral e)
         -- | otherwise = TokenError e
 
     checkLiteral :: String -> Bool
     checkLiteral e
         | (head e) == '\"' =  True
         -- | (head e) == '[' =  True
+        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) = True
         | (readMaybe e :: Maybe Float ) == Just (read e :: Float) = True
         | otherwise = False
+
+    -- TODO: very dirty solution, refactor!
+    assignLiteral :: String -> StackLiteral
+    assignLiteral e 
+        | (head e) == '\"' = StackString e
+        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   (StackBool (read e :: Bool) )
+        -- otherwise = StackLiteral
+        -- | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
+        --     Nothing -> Literal (StackString e) -- this is an assignment
+        --     Just n -> Literal (StackFloat n)
+        -- | intOrFloat e == "int" = case readMaybe e :: Maybe Float of
+        --     Nothing -> Literal (StackString e) -- this is an assignment
+        --     Just n -> Literal (StackFloat n)
+        -- | otherwise = Literal (StackString e) -- this is an assignment
+
+        -- | (readMaybe e :: Maybe Float ) /= Nothing = Literal (StackFloat e)
+        -- | (readMaybe e :: Maybe Int ) == Just (read e :: Int) = Literal (StackInt e)
+        -- | (readMaybe e :: Maybe Bool ) == Just (read e :: Bool) = Literal (StackBool e)
+        -- | otherwise
+        -- otherwise assign it to a value
+
+
+    intOrFloat :: String -> String
+    intOrFloat e = case any (=='.') e of
+        True -> "float"
+        False -> "int"
+
+
 
     -- Map and function didn't impelemented yet
     checkListOp :: String -> Bool
@@ -85,17 +115,6 @@ module Parser where
 
    
    
-    -- parseList :: [String] -> [String]
-    -- parseList list =
-    --     let parseListWrapper ("]":xs) str  =  ("[" ++ (init(str)) ++ "]"):xs
-    --         parseListWrapper (x:xs) str = case x of 
-    --             "[" -> parseList xs
-    --             otherwise -> parseListWrapper xs (str ++ x ++ ",") 
-    --     in
-    --         parseListWrapper list ""
-
-
-    
             
 
     parseString :: [String] ->  [String]
@@ -135,62 +154,6 @@ module Parser where
         in
             parseListWrapper list ""
 
-
-
---  -- use elemIndices to plit the list
---     tokenize :: [String] ->  String -> String -> [String]
---     tokenize list open close = do
---         -- let openBrackets = open `elemIndices` list
---         -- let closeBrackets = close `elemIndices` list
-        
---         case (any (==open) list) of
---             True -> tokenize ((takeWhile (/= open) list) ++ (parseList (tail $ dropWhile (/= open) list) open close )) open close
---             False -> list
-
-
---     parseList :: [String] -> String -> String -> [String]
---     parseList list open close =
---         let parseListWrapper (close:xs) str  =  (open ++ (init(str)) ++ close):xs
---             parseListWrapper (x:xs) str = do 
---                 if x == open 
---                     then parseList xs open close
---                     else   parseListWrapper xs (str ++ x ++ ",") 
---         in
---             parseListWrapper list ""
-
-
-    -- tokenizeString :: [String] -> [String]
-    -- tokenizeString list = do
-    --     case (any (=="\"") list) of
-    --         True -> tokenizeList ((takeWhile (/= "\"") list) ++ (parseString $ tail $ dropWhile (/= "\"") list ))
-    --         False -> list
-
-    -- parseString :: [String] -> [String]
-    -- parseString list =
-    --     let parseListWrapper [] "" = []
-    --         parseListWrapper ("\"":xs) str  =   (init(str)):xs
-    --         parseListWrapper (x:xs) str = parseListWrapper xs (str ++ x ++ " ")  
-    --     in
-    --         parseListWrapper list ""
-
-    -- handleList :: [String] -> [String]
-    -- handleList list = case (any (=="[") list ) of
-    --     True -> do
-    --         let maybeTokenize = parseList list
-    --         handleList maybeTokenize
-    --     False -> filter (\t ->( (t /= "")) ) list
-
-
-    -- parseList :: [String] -> [String]
-    -- parseList list  =
-    --     let parseListWrapper [] str = []
-    --         parseListWrapper ("]":xs) ""  = []
-    --         parseListWrapper ("]":xs) str  =  [("[" ++ (init(str)) ++ "]")]
-    --         parseListWrapper (x:xs) str = case x of 
-    --             "[" ->  (splitOn "," str) ++ parseListWrapper xs ("")  ++  ( parseListWrapper ( tail $  (dropWhile (/="]") xs) ++ [""] ) "")
-    --             otherwise -> parseListWrapper xs (str ++ x ++ ",")
-    --     in
-    --             parseListWrapper list ""
 
 
 

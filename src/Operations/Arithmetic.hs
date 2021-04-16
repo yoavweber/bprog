@@ -22,24 +22,13 @@ module Operations.Arithmetic where
     opAdd = do
         a <- pop
         b <- pop
+        let res = a + b
+        case res of
+            Literals (StackString "error!") -> do
+                push (Errors "you matched the wrong type")
+                return ()
+            otherwise -> do
+                push res
+                return ()
+            
         return ()
-        -- poping the plus sign
-        -- pop
-        -- let first = unWrap a
-        -- let second = unWrap b
-        -- case (readMaybe first :: Maybe Int) of
-        --     Nothing -> return () -- this should be an error
-        --     Just num1 -> case (readMaybe second :: Maybe Int) of
-        --         Nothing -> return ()-- This should be an error
-        --         Just num2 -> do 
-        --             let res = num1 + num2
-        --             -- let res =  ((+) <$> num1 <*> num2) 
-        --             push (Literal $ show res)
-        --             return()
-
-        -- pop
-        -- let res =  ((++) <$> a <*> b) 
-        -- push res
-        -- return()
-    -- checkAritmic :: a -> a -> Maybe a
-    -- checkAritmic a b = do

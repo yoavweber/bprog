@@ -8,7 +8,7 @@ module Types where
         | StackFloat   Float
         | StackBool   Bool
         | Lists     [StackLiteral]
-        deriving(Show)
+        deriving(Show,Eq)
 
     data Ops
         = Arithmetics String
@@ -16,6 +16,7 @@ module Types where
         | ControlFlows String
         | StackOps  String
         | Literals StackLiteral
+        | Errors String
         deriving(Show)
      
     
@@ -45,9 +46,13 @@ module Types where
     -- instance (Show a) => Show (TokenType a) where
         -- show (Op a)= show a
         -- show (Branch v l r) = "(left: " ++ show l ++ ") " ++ show v ++ " (right: " ++ show r ++ ")"
-
-
-    type ProgState = State Stack (Stack)
+    instance Num StackLiteral where
+        StackInt a + StackInt b = StackInt (a + b)
+        StackInt a + _  = StackString "error!"
+    
+    instance Num Ops where
+        Literals a + Literals b = Literals (a + b)
+        -- StackInt a + _  = StackString "error!"
 
 
     data ProgramError =

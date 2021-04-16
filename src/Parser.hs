@@ -41,14 +41,16 @@ module Parser where
     getTokenType :: String -> StackElement
     getTokenType e
         | e == "+" = Arithmetics e
+        | e == "==" = Arithmetics e
         -- | e == "+" = Arithmetic (StackOps e)
         -- | e == "&&" = Logical e
         -- | (e == "pop" || e == "swap" || e == "dup") = StackOp e
-        -- | checkListOp e == True = ListOp e
-        -- -- | (head e) == '[' =  List ( words  (tail $ init e))
+        | checkListOp e == True = ListOp e
+        | (head e) == '[' =  Literals (List  ( words  (tail $ init e)))
         -- -- | (head e) == '[' =  List ([e])
-        -- | e == "exec" = ControlFlow e 
-        -- | (head e) == '{' = Exec (tail $ init e)
+        | e == "if" = ControlFlow e 
+        | e == "exec" = ControlFlow e 
+        | (head e) == '{' = Exec (tail $ init e)
         | checkLiteral e == True = Literals (assignLiteral e)
         -- | otherwise = TokenError e
 
@@ -65,7 +67,6 @@ module Parser where
     assignLiteral e 
         | (head e) == '\"' = StackString e
         | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   (StackBool (read e :: Bool) )
-        -- otherwise = StackLiteral
         | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
             Nothing -> StackString e -- this is an assignment
             Just n -> StackFloat n

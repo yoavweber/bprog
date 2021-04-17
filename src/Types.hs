@@ -35,6 +35,7 @@ module Types where
         StackString a == StackString b = a == b  
         StackFloat a == StackFloat b = a == b
         StackBool a == StackBool b = a == b 
+        StackInt a == StackFloat b = (fromIntegral a :: Float) == b 
         StackInt a == _ = False 
         StackString a == _ = False
         StackFloat a == _ = False

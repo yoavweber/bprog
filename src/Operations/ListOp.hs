@@ -1,6 +1,7 @@
 module Operations.ListOp where
     import Control.Monad.State
     import Stack.StackOperations(pop, push)
+    import Parser
 
     import Types
 
@@ -13,7 +14,7 @@ module Operations.ListOp where
     handleHead :: State Stack ()
     handleHead = do
         list <- pop
-        -- push $ head' list
+        push $ head' list
         return ()
 
     -- handleLength :: State Stack ()
@@ -31,17 +32,18 @@ module Operations.ListOp where
     --     pop
     --     push $ head' list
     --     return ()
-
-    head' :: [StackLiteral]  -> StackLiteral 
-    head' x = head x 
+    -- TODO: check the type of the new element that you are pushing to the stack
+    head' :: StackElement  -> StackElement 
+    head' x = case x of
+       Literals (List l) -> Literals (assignLiteral (head l)) 
         
         -- case x of
         -- List l -> StackString (head l)
 
 
-    -- tail' :: TokenType [a] -> TokenType [a]
+    -- tail' :: StackElement  -> StackElement 
     -- tail' x = case x of
-    --     List l -> Literal (head $ reverse l)
+    --     List l -> Literal (assignLiteral $ head $ reverse l)
 
     
     -- length' :: TokenType [a] -> StackElement

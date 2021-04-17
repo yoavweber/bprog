@@ -5,35 +5,8 @@ module Parser where
     import Data.List.Split
 
 
--- Instead of type string change it to type stack 
 
 
--- TODO: change naming of function
--- create 1 token from list/string or function expersion
--- parseString :: [String] -> String -> [String]
--- parseString list = case (any (=="\"") list) of
---     True -> parseString ((takeWhile (/= "\"") list) ++ (stringefy $ tail $ dropWhile (/= "\"") list ))
---     False -> list
-
-
--- stringefy :: [String] -> [String]
--- stringefy list  =
---     let parseStringWrapper ("\"":xs) str  =  (init(str)):xs
---         parseStringWrapper (x:xs) str = parseStringWrapper xs (str ++ x ++ " ")  
---     in
---         parseStringWrapper list ""
-
-
--- parseBrackets :: [String] -> String -> [String]
--- parseBrackets list openBrackets closeBrackets = case (any (==t) list) of
---     True -> parseBrackets ((takeWhile (/= openBrackets) list) ++ (parseString $ tail $ dropWhile (/= closeBrackets) list )) openBrackets closeBrackets
---     False -> list
-
--- Create an expection in case there would be no closing token
--- checkTokens:: [String] ->  [String]
--- checkTokens list = do
---     let makeString = parseString list "\""
---     return makeString
     slice :: Int -> Int -> [a] -> [a]
     slice start stop xs = fst $ splitAt (stop - start) (snd $ splitAt start xs)
 

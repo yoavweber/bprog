@@ -9,7 +9,8 @@ module Operations.Arithmetic where
     handleAritmic :: StackElement -> State Stack ()
     handleAritmic t = case t of
         Arithmetics "+" -> opAdd
-        otherwise ->  put [Arithmetics "1"]
+        Arithmetics "==" -> opEq 
+        -- otherwise ->  put [Arithmetics "1"]
 
 
     -- unWrap :: Ops -> a
@@ -32,3 +33,16 @@ module Operations.Arithmetic where
                 return ()
             
         return ()
+
+
+    
+    opEq :: State Stack ()
+    opEq = do
+        a <- pop
+        b <- pop
+        let res = a == b
+        case res of
+            False -> push (Literals (StackBool False))
+            otherwise -> push (Literals (StackBool True))
+        return ()
+

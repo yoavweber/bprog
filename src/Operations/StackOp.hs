@@ -7,7 +7,7 @@ module Operations.StackOp where
     -- TODO: try to handle error from pop
     handleStackOp :: StackElement -> State Stack ()
     handleStackOp t = case t of
-        StackOps "pop" -> do 
+        StackOp "pop" -> do 
             getStack <- get
             if length getStack < 2
                 then do
@@ -18,13 +18,13 @@ module Operations.StackOp where
                         pop
                         return ()
 
-        StackOps "swap" -> do
+        StackOp "swap" -> do
             first <- pop
             second <- pop
             push first
             push second
             return ()
-        StackOps "dup" -> do
+        StackOp "dup" -> do
             first <- pop
             push first
             push first

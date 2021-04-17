@@ -38,7 +38,7 @@ module Stack.Stack (
 
     handleTokens :: StackElement -> State Stack ()
     handleTokens t = case t of
-        Arithmetics t ->  handleAritmic  (Arithmetics t)
+        Arithmetic t ->  handleAritmic  (Arithmetic t)
         -- StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
         ControlFlow t -> handleControlFlow t
@@ -48,7 +48,7 @@ module Stack.Stack (
     removeOp :: StackElement -> Bool
     removeOp token = case token of
         -- Literal _ -> True
-        Literals _ -> True
+        Literal _ -> True
         Exec _ -> True
         otherwise -> False
     
@@ -69,7 +69,7 @@ module Stack.Stack (
 
     unWrap :: Ops -> String
     unWrap a = case a of
-        -- Literals t -> t 
+        -- Literal t -> t 
         Exec t -> t
 
     handleExecution :: State Stack ()
@@ -91,16 +91,16 @@ module Stack.Stack (
                 falseExec <- pop
             -- if there are no two execution provide an error
                 case condition of
-                    Literals (StackBool True)  -> do
+                    Literal (StackBool True)  -> do
                         push (executeCodeLine (unWrap trueExec) [])
                         return ()
-                    Literals (StackBool False) -> do
+                    Literal (StackBool False) -> do
                         push (executeCodeLine (unWrap falseExec) [])
                         return ()
                     otherwise -> do
-                        push (Literals (StackString "if input error, you didn't provided bool condition")) -- handle error
+                        push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
                         return ()
             False -> do 
-                put ([Literals (StackString "if input error")]) -- handle error with proper if statment
+                put ([Literal (StackString "if input error")]) -- handle error with proper if statment
                 return ()
                 

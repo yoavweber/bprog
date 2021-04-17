@@ -13,18 +13,18 @@ module Parser where
     
     getTokenType :: String -> StackElement
     getTokenType e
-        | e == "+" = Arithmetics e
-        | e == "==" = Arithmetics e
+        | e == "+" = Arithmetic e
+        | e == "==" = Arithmetic e
         -- | e == "+" = Arithmetic (StackOps e)
         -- | e == "&&" = Logical e
         -- | (e == "pop" || e == "swap" || e == "dup") = StackOp e
         | checkListOp e == True = ListOp e
-        | (head e) == '[' =  Literals (List  ( words  (tail $ init e)))
+        | (head e) == '[' =  Literal (List  ( words  (tail $ init e)))
         -- -- | (head e) == '[' =  List ([e])
         | e == "if" = ControlFlow e 
         | e == "exec" = ControlFlow e 
         | (head e) == '{' = Exec (tail $ init e)
-        | checkLiteral e == True = Literals (assignLiteral e)
+        | checkLiteral e == True = Literal (assignLiteral e)
         -- | otherwise = TokenError e
 
     checkLiteral :: String -> Bool

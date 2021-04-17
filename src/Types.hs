@@ -11,21 +11,21 @@ module Types where
         deriving(Show)
 
     data Ops
-        = Arithmetics String
-        | Logicals String
+        = Arithmetic String
+        | Logical String
         | ControlFlow String
-        | StackOps  String
+        | StackOp  String
         | ListOp String
         | Exec String
-        | Literals StackLiteral
-        | Errors String
+        | Literal StackLiteral
+        | Error String
         deriving(Show,Eq)
      
     
     -- data List a = StackLiteral | List1 [List a]
     
     -- data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
-    data TokenType a = Op a | Literal a | Lists [a] | Execs a | StackOp a | ListOps a | TokenError a deriving(Show)
+    data TokenType a = Op a | Literals a | Lists [a] | Execs a | StackOps a | ListOps a | TokenError a deriving(Show)
 
     type Stack = [StackElement]
     type StackElement = Ops
@@ -42,13 +42,13 @@ module Types where
         StackBool a == _ = False
 
     instance Functor TokenType where  
-        fmap f (Literal a) = Literal (f a)  
-        fmap f (Execs a) = Literal (f a)  
+        fmap f (Literals a) = Literals (f a)  
+        fmap f (Execs a) = Literals (f a)  
         -- fmap f (Lis t a) = List (map f a)  
 
     instance Applicative TokenType where
-        pure             =  Literal
-        (Literal a) <*> f = fmap a f
+        pure             =  Literals
+        (Literals a) <*> f = fmap a f
         Execs a <*> f = fmap a f
         -- (List a) <*> f = [fmap a f]
 
@@ -64,7 +64,7 @@ module Types where
         StackInt a + _  = StackString "error!"
     
     instance Num Ops where
-        Literals a + Literals b = Literals (a + b)
+        Literal a + Literal b = Literal (a + b)
         -- StackInt a + _  = StackString "error!"
 
 

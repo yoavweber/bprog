@@ -35,7 +35,7 @@ module Operations.ListOp where
     -- TODO: check the type of the new element that you are pushing to the stack
     head' :: StackElement  -> StackElement 
     head' x = case x of
-       Literals (List l) -> Literals (assignLiteral (head l)) 
+       Literal (List l) -> Literal (assignLiteral (head l)) 
         
         -- case x of
         -- List l -> StackString (head l)

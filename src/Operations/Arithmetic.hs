@@ -8,14 +8,14 @@ module Operations.Arithmetic where
     -- TODO: try to create a generic function which getting as an input the operation
     handleAritmic :: StackElement -> State Stack ()
     handleAritmic t = case t of
-        Arithmetics "+" -> opAdd
-        Arithmetics "==" -> opEq 
+        Arithmetic "+" -> opAdd
+        Arithmetic "==" -> opEq 
         -- otherwise ->  put [Arithmetics "1"]
 
 
     -- unWrap :: Ops -> a
     -- unWrap a = case a of
-    --     Literals t -> t 
+    --     Literal t -> t 
     --     -- Exec t -> t
 
     -- refactor to use applicative 
@@ -25,8 +25,8 @@ module Operations.Arithmetic where
         b <- pop
         let res = a + b
         case res of
-            Literals (StackString "error!") -> do
-                push (Errors "you matched the wrong type")
+            Literal (StackString "error!") -> do
+                push (Error "you matched the wrong type")
                 return ()
             otherwise -> do
                 push res
@@ -42,7 +42,7 @@ module Operations.Arithmetic where
         b <- pop
         let res = a == b
         case res of
-            False -> push (Literals (StackBool False))
-            otherwise -> push (Literals (StackBool True))
+            False -> push (Literal (StackBool False))
+            otherwise -> push (Literal (StackBool True))
         return ()
 

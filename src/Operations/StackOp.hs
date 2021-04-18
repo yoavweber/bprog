@@ -5,10 +5,10 @@ module Operations.StackOp where
     import Types
 
     -- TODO: try to handle error from pop
-    handleStackOp :: StackElement -> State Stack ()
+    handleStackOp :: StackElement -> ProgState ()
     handleStackOp t = case t of
         StackOp "pop" -> do 
-            getStack <- get
+            (_,getStack) <- get
             if length getStack < 2
                 then do
                     -- push (TokenError "Stack is empty")

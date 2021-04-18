@@ -27,7 +27,7 @@ module Types where
         | Literal StackLiteral
         | Error String
         | AssignmentOp String
-        | VaribleStack (AssignmentMap  StackLiteral)
+        | VaribleStack (AssignmentMap)
         deriving(Show,Eq,Ord)
      
     
@@ -36,8 +36,10 @@ module Types where
     -- data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
     data TokenType a = Op a | Literals a | Lists [a] | Execs a | StackOps a | ListOps a | TokenError a deriving(Show)
 
+    type ProgState = State (AssignmentMap, Stack)
 
-    type AssignmentMap = M.Map Ops  
+    type Map = M.Map Ops 
+    type AssignmentMap = Map StackLiteral
     type Stack = [StackElement]
     type StackElement = Ops
 

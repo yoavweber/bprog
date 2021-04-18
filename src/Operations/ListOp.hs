@@ -6,15 +6,15 @@ module Operations.ListOp where
     import Types
 
 
-    handleListOp :: String -> State Stack ()
+    handleListOp :: String -> ProgState ()
     handleListOp t = case t of 
         "head" -> handleHead
         -- "length" -> handleLength
 
-    handleHead :: State Stack ()
+    handleHead :: ProgState ()
     handleHead = do
         list <- pop
-        push $ head' list
+        -- push $ head' list
         return ()
 
     -- handleLength :: State Stack ()
@@ -33,9 +33,9 @@ module Operations.ListOp where
     --     push $ head' list
     --     return ()
     -- TODO: check the type of the new element that you are pushing to the stack
-    head' :: StackElement  -> StackElement 
-    head' x = case x of
-       Literal (List l) -> Literal (assignLiteral (head l)) 
+    -- head' :: StackElement  -> StackElement 
+    -- head' x = case x of
+    --    Literal (List l) -> Literal (assignLiteral (head l)) 
         
         -- case x of
         -- List l -> StackString (head l)

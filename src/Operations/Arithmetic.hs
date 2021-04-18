@@ -4,11 +4,11 @@ module Operations.Arithmetic where
     import qualified Data.Map.Strict as M
 
 
-    import Stack.StackOperations(pop, push,pick)
+    import Stack.StackOperations(pop, push,getVarMap)
     import Types
 
     -- TODO: try to create a generic function which getting as an input the operation
-    handleAritmic :: StackElement -> State Stack ()
+    handleAritmic :: StackElement -> ProgState ()
     handleAritmic t = case t of
         Arithmetic "+" -> opAdd
         Arithmetic "==" -> opEq 
@@ -21,7 +21,7 @@ module Operations.Arithmetic where
     --     -- Exec t -> t
 
     -- if there is not enough element, push it as execution that would be trigerd on another element
-    opAdd :: State Stack ()
+    opAdd :: ProgState ()
     opAdd = do
         a <- pop
         b <- pop
@@ -40,7 +40,7 @@ module Operations.Arithmetic where
 
 
     
-    opEq :: State Stack ()
+    opEq :: ProgState ()
     opEq = do
         a <- pop
         b <- pop
@@ -52,16 +52,15 @@ module Operations.Arithmetic where
 
 
 
-    evalVar :: StackElement ->  State Stack (StackLiteral)
+    evalVar :: StackElement ->  ProgState (StackLiteral)
     evalVar maybeVar = case maybeVar of
         Literal (Varible var) -> do
-            assignmentMap <- pick
-            case assignmentMap of 
-                VaribleStack m -> case M.lookup (Literal (Varible var))  m of
-                    Nothing -> do
-                        return (StackString "Error") -- TODO: error, there is no such varible(this is a problem in the program)
-                    Just n -> do
-                        return n
+            assignmentMap <- getVarMap
+            case M.lookup (Literal (Varible var))  assignmentMap of
+                Nothing -> do
+                    return (StackString "Error") -- TODO: error, there is no such varible(this is a problem in the program)
+                Just n -> do
+                    return n
         Literal x -> do
             return x
         otherwise -> do

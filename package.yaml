@@ -38,6 +38,7 @@ executables:
       - bprog
       - mtl
       - split
+      - containers
 
 tests:
   bprog-test:

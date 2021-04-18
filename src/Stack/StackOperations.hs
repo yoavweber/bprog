@@ -1,8 +1,8 @@
 module Stack.StackOperations (
     pop,
     push,
-    pick,
-    pick2,
+    getVarMap,
+    peekStack,
     updateVar
  ) where
     import Control.Monad.State
@@ -10,21 +10,23 @@ module Stack.StackOperations (
     import Types
 
 
-   -- TODO: change the name of the file to stack managment
-    pop :: State Stack (StackElement)
-    pop = state $ \(x:xs) -> (x,xs)
+   -- TODO: change the name of the file to manage state
+   -- TODO: change the naming from xy to more useful
+    pop :: ProgState (StackElement)
+    pop = state $ \(y,(x:xs)) -> (x,(y,xs))
 
-    push :: StackElement -> State Stack ()
-    push a = state $ \xs -> ((),a:xs)
-
-   -- getting the last the map from the stack
-    pick ::  State Stack (StackElement)
-    pick = state $ \(xs) -> ((last xs),xs)
-
-    pick2 ::  State Stack (StackElement)
-    pick2 = state $ \(x:xs) -> (x,x:xs)
+    push :: StackElement -> ProgState ()
+    push a = state $ \(y,xs) -> ((),(y,a:xs))
 
 
+    
+   --  picking the first element from the stack
+    peekStack :: ProgState (StackElement)
+    peekStack = state $ \(y,x:xs) -> (x,(y,x:xs))
 
-    updateVar :: StackElement -> State Stack ()
-    updateVar a =  state $ \(xs) -> ( (),init(xs) ++ [a] )
+    getVarMap ::  ProgState (AssignmentMap)
+    getVarMap = state $ \(y,x) -> (y,(y,x))
+
+   --  Updating the varible map
+    updateVar :: AssignmentMap -> ProgState ()
+    updateVar newMap =  state $ \(map,stack) -> ( (),(newMap,stack) )

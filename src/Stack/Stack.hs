@@ -4,6 +4,8 @@ module Stack.Stack (
  ) where
     import Control.Monad.State
     import Types
+    import qualified Data.Map.Strict as M
+
 
     import Operations.StackOp
     import Operations.Arithmetic
@@ -14,31 +16,31 @@ module Stack.Stack (
 
 
 
-    executeCode :: String -> Stack -> Stack
-    executeCode line previousStack = 
+    executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
+    executeCode line (varMap,previousStack) = 
         let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
         -- let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ tail(previousStack) 
-        in execState stackManip stack
+        in execState stackManip (varMap,stack) 
 
-    stackManip ::  State Stack ()
+    stackManip ::  ProgState ()
     stackManip = do
-        currentStack <- get
+        (varMap,currentStack) <- get
         let removeTokens = (filter (\token -> removeOp token) currentStack )
-        put removeTokens 
+        put (varMap,removeTokens) 
         changeState currentStack
         newStack <- get
         return ()
 
 
 
-    changeState :: Stack -> State Stack ()
+    changeState :: Stack -> ProgState ()
     changeState [] = return () 
     changeState (x:xs) = do
         handleTokens x
         changeState xs
 
 
-    handleTokens :: StackElement -> State Stack ()
+    handleTokens :: StackElement -> ProgState ()
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic  (Arithmetic t)
         -- StackOp t -> handleStackOp (StackOp t)
@@ -59,28 +61,20 @@ module Stack.Stack (
         -- Varible _ -> True
         otherwise -> False
     
------------------------------------------------------------
-    -- -- push 
-    -- handleVarible :: String -> State Stack ()
-    -- handleVarible t = case t of
-    --     ":=" -> handleAssignment
-    --     otherwise -> pushVarible
-
-    
 
 
 -- ---------------------- Control flow --------------------------------
 
-    handleControlFlow :: String -> State Stack ()
+    handleControlFlow :: String -> ProgState ()
     handleControlFlow t = case t of
         "exec" -> handleExecution 
         "if" -> handleIf
     
 
-    executeCodeLine :: String -> Stack -> StackElement
-    executeCodeLine line previousStack = 
+    executeCodeLine :: String -> (AssignmentMap, Stack) -> StackElement
+    executeCodeLine line (varMap,previousStack) = 
         let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
-        in (execState stackManip stack) !! 0
+        in snd (execState stackManip (varMap, stack)) !! 0
     
 
 
@@ -89,16 +83,16 @@ module Stack.Stack (
         -- Literal t -> t 
         Exec t -> t
 
-    handleExecution :: State Stack ()
+    handleExecution :: ProgState ()
     handleExecution = do
         executionLine <- pop
         let command = unWrap executionLine
-        let res = executeCodeLine command []
+        let res = executeCodeLine command (M.fromList[(Literal (Varible "Test"), StackString "this should be empty value")], [])
         push (res)
         return ()
 
 
-    handleIf :: State Stack ()
+    handleIf :: ProgState ()
     handleIf = do
         currentStack <- get
         case (length currentStack) >= 3 of
@@ -109,15 +103,15 @@ module Stack.Stack (
             -- if there are no two execution provide an error
                 case condition of
                     Literal (StackBool True)  -> do
-                        push (executeCodeLine (unWrap trueExec) [])
+                        push (executeCodeLine (unWrap trueExec) ((M.empty :: AssignmentMap), []))
                         return ()
                     Literal (StackBool False) -> do
-                        push (executeCodeLine (unWrap falseExec) [])
+                        push (executeCodeLine (unWrap falseExec) ((M.empty :: AssignmentMap), []))
                         return ()
                     otherwise -> do
                         push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
                         return ()
             False -> do 
-                put ([Literal (StackString "if input error")]) -- handle error with proper if statment
+                put ((M.empty :: AssignmentMap),[Literal (StackString "if input error")]) -- handle error with proper if statment
                 return ()
                 

@@ -1,8 +1,10 @@
 module Operations.Arithmetic where
     import Text.Read (readMaybe)
     import Control.Monad.State
+    import qualified Data.Map.Strict as M
 
-    import Stack.StackOperations(pop, push)
+
+    import Stack.StackOperations(pop, push,pick)
     import Types
 
     -- TODO: try to create a generic function which getting as an input the operation
@@ -18,21 +20,23 @@ module Operations.Arithmetic where
     --     Literal t -> t 
     --     -- Exec t -> t
 
-    -- refactor to use applicative 
+    -- if there is not enough element, push it as execution that would be trigerd on another element
     opAdd :: State Stack ()
     opAdd = do
         a <- pop
         b <- pop
-        let res = a + b
+        a1 <- evalVar a
+        b1 <- evalVar b
+        let res =  a1 + b1
+        -- res <- ress
         case res of
-            Literal (StackString "error!") -> do
-                push (Error "you matched the wrong type")
-                return ()
+            -- StackString "error!" -> do
+            --     push (Error "you matched the wrong type") -- handle error better
+            --     return ()
             otherwise -> do
-                push res
+                push (Literal res)
                 return ()
             
-        return ()
 
 
     
@@ -44,5 +48,30 @@ module Operations.Arithmetic where
         case res of
             False -> push (Literal (StackBool False))
             otherwise -> push (Literal (StackBool True))
-        return ()
+        -- return ()
 
+
+
+    evalVar :: StackElement ->  State Stack (StackLiteral)
+    evalVar maybeVar = case maybeVar of
+        Literal (Varible var) -> do
+            assignmentMap <- pick
+            case assignmentMap of 
+                VaribleStack m -> case M.lookup (Literal (Varible var))  m of
+                    Nothing -> do
+                        return (StackString "Error") -- TODO: error, there is no such varible(this is a problem in the program)
+                    Just n -> do
+                        return n
+        Literal x -> do
+            return x
+        otherwise -> do
+            return (StackString "Error, operation not supported") -- TODO: error, 
+                
+
+
+            
+    -- this should change by the way I am structring state
+    -- getVaribles:: StackElement -> State Stack (Maybe VaribleStack)
+    -- getVaribles = do
+    --     assignmentMap <- pick
+    --     case assignmentMap

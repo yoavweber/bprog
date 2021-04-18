@@ -23,8 +23,12 @@ module Parser where
         -- -- | (head e) == '[' =  List ([e])
         | e == "if" = ControlFlow e 
         | e == "exec" = ControlFlow e 
+        | e == ":=" = AssignmentOp e
         | (head e) == '{' = Exec (tail $ init e)
-        | checkLiteral e == True = Literal (assignLiteral e)
+        | checkLiteral e == True = case  assignLiteral e of
+            Nothing -> Literal $ Varible e
+            Just literal -> Literal literal
+        | otherwise = Literal $ Varible e -- TODO: error, handle undefine value
         -- | otherwise = TokenError e
 
     checkLiteral :: String -> Bool
@@ -36,17 +40,17 @@ module Parser where
         | otherwise = False
 
     -- TODO: very dirty solution, refactor!
-    assignLiteral :: String -> StackLiteral
+    assignLiteral :: String -> Maybe StackLiteral
     assignLiteral e 
-        | (head e) == '\"' = StackString e
-        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   (StackBool (read e :: Bool) )
+        | (head e) == '\"' = Just (StackString e)
+        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   Just (StackBool (read e :: Bool) )
         | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
-            Nothing -> StackString e -- this is an assignment
-            Just n -> StackFloat n
+            Nothing -> Nothing-- this is an assignment
+            Just n -> Just (StackFloat n)
         | intOrFloat e == "int" = case readMaybe e :: Maybe Int of
-            Nothing -> StackString e -- this is an assignment
-            Just n -> StackInt n
-        | otherwise = StackString e -- this is an assignment
+            Nothing -> Nothing 
+            Just n -> Just(StackInt n)
+        | otherwise = Nothing -- this is an assignment
 
         -- | (readMaybe e :: Maybe Float ) /= Nothing = Literal (StackFloat e)
         -- | (readMaybe e :: Maybe Int ) == Just (read e :: Int) = Literal (StackInt e)

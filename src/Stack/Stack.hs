@@ -8,6 +8,7 @@ module Stack.Stack (
     import Operations.StackOp
     import Operations.Arithmetic
     import Operations.ListOp
+    import Operations.Symbol
     import Stack.StackOperations
     import Parser
 
@@ -16,6 +17,7 @@ module Stack.Stack (
     executeCode :: String -> Stack -> Stack
     executeCode line previousStack = 
         let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
+        -- let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ tail(previousStack) 
         in execState stackManip stack
 
     stackManip ::  State Stack ()
@@ -41,7 +43,10 @@ module Stack.Stack (
         Arithmetic t ->  handleAritmic  (Arithmetic t)
         -- StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
+        AssignmentOp t -> handleVarible t
+        Literal (Varible t) -> handleVarible t
         ControlFlow t -> handleControlFlow t
+
         otherwise -> return ()
         
 
@@ -50,9 +55,21 @@ module Stack.Stack (
         -- Literal _ -> True
         Literal _ -> True
         Exec _ -> True
+        VaribleStack _ -> True
+        -- Varible _ -> True
         otherwise -> False
     
+-----------------------------------------------------------
+    -- -- push 
+    -- handleVarible :: String -> State Stack ()
+    -- handleVarible t = case t of
+    --     ":=" -> handleAssignment
+    --     otherwise -> pushVarible
 
+    
+
+
+-- ---------------------- Control flow --------------------------------
 
     handleControlFlow :: String -> State Stack ()
     handleControlFlow t = case t of

@@ -4,6 +4,8 @@ import Control.Monad.State
 import Parser
 import Types
 import Stack.Stack
+import qualified Data.Map.Strict as M
+
 
 updateState :: Stack -> IO()
 updateState previousStack = do
@@ -17,7 +19,9 @@ updateState previousStack = do
 
 
 main = do
-    updateState []
+    updateState [VaribleStack $ M.fromList[(Literal (Varible "Test"), StackString "test")]]
+
+    -- updateState [VaribleStack $ M.fromList[("Test", StackString "test")]]
 
 
 

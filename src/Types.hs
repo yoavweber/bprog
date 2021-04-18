@@ -1,14 +1,21 @@
 module Types where
     import Control.Monad.State
+    import qualified Data.Map.Strict as M
 
+
+
+    -- data Symbol =
+    --     Varible StackLiteral
+    --     | Func Ops-- this can only be exec
 
     data StackLiteral 
          = StackInt    Int
         | StackString String
         | StackFloat   Float
         | StackBool   Bool
+        | Varible   String -- this could be also a function so it might move from there
         | List    [String]
-        deriving(Show)
+        deriving(Show,Ord)
 
     data Ops
         = Arithmetic String
@@ -19,7 +26,9 @@ module Types where
         | Exec String
         | Literal StackLiteral
         | Error String
-        deriving(Show,Eq)
+        | AssignmentOp String
+        | VaribleStack (AssignmentMap  StackLiteral)
+        deriving(Show,Eq,Ord)
      
     
     -- data List a = StackLiteral | List1 [List a]
@@ -27,6 +36,8 @@ module Types where
     -- data TokenType a = Arithmetic a | Logical a | Literal a | List [a] | Exec a | ControlFlow a | StackOp a | ListOp a | TokenError a deriving(Show)
     data TokenType a = Op a | Literals a | Lists [a] | Execs a | StackOps a | ListOps a | TokenError a deriving(Show)
 
+
+    type AssignmentMap = M.Map Ops  
     type Stack = [StackElement]
     type StackElement = Ops
 
@@ -40,6 +51,7 @@ module Types where
         StackString a == _ = False
         StackFloat a == _ = False
         StackBool a == _ = False
+        -- StackBool a == StackInt b = a == (M.lookup b)
 
     instance Functor TokenType where  
         fmap f (Literals a) = Literals (f a)  
@@ -52,20 +64,13 @@ module Types where
         Execs a <*> f = fmap a f
         -- (List a) <*> f = [fmap a f]
 
-    
-    -- instance Show (StackLiteral) where
-    --     show (StackInt a) = show a
-    --     show (StackString a) =  a
-    -- instance (Show a) => Show (TokenType a) where
-        -- show (Op a)= show a
-        -- show (Branch v l r) = "(left: " ++ show l ++ ") " ++ show v ++ " (right: " ++ show r ++ ")"
+
     instance Num StackLiteral where
         StackInt a + StackInt b = StackInt (a + b)
         StackInt a + _  = StackString "error!"
     
     instance Num Ops where
         Literal a + Literal b = Literal (a + b)
-        -- StackInt a + _  = StackString "error!"
 
 
     data ProgramError =

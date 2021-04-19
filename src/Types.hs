@@ -13,8 +13,7 @@ module Types where
         | StackString String
         | StackFloat   Float
         | StackBool   Bool
-        | Varible   String -- this could be also a function so it might move from there
-        | List    [String]
+        | List    [StackLiteral]
         deriving(Show,Ord)
 
     data Ops

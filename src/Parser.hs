@@ -19,7 +19,8 @@ module Parser where
         -- | e == "&&" = Logical e
         -- | (e == "pop" || e == "swap" || e == "dup") = StackOp e
         | checkListOp e == True = ListOp e
-        | (head e) == '[' =  Literal (List  ( words  (tail $ init e)))
+        -- | (head e) == '[' =  Literal (List  ( words  (tail $ init e)))
+        | (head e) == '[' =  Literal (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal})$ words  (tail $ init e)))
         -- -- | (head e) == '[' =  List ([e])
         | e == "if" = ControlFlow e 
         | e == "exec" = ControlFlow e 
@@ -42,6 +43,7 @@ module Parser where
     -- TODO: very dirty solution, refactor!
     assignLiteral :: String -> Maybe StackLiteral
     assignLiteral e 
+        | (head e) == '[' =  Just (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ words  (tail $ init e)))
         | (head e) == '\"' = Just (StackString e)
         | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   Just (StackBool (read e :: Bool) )
         | intOrFloat e == "float" = case readMaybe e :: Maybe Float of

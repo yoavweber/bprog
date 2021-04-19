@@ -1,7 +1,8 @@
 module Stack.Stack (
     stackManip,
     executeCode,
-    removeOp
+    removeOp,
+    changeState
  ) where
     import Control.Monad.State
     import Types
@@ -19,27 +20,21 @@ module Stack.Stack (
 
     executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
     executeCode line (varMap,previousStack) = 
-        let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
-        -- let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ tail(previousStack) 
+        let stack = previousStack ++ (map (\e -> getTokenType e) $ tokenize (words line))
         in execState stackManip (varMap,stack) 
 
     stackManip ::  ProgState ()
     stackManip = do
+        -- temp stack, just a way to pass the tokens
         (varMap,currentStack) <- get
-        let removeTokens = (filter (\token -> removeOp token) currentStack )
-        put (varMap,removeTokens) 
+        -- FIXME: this is a fix, refactoring is needed
+        put (varMap,[])
         changeState currentStack
-        (_,newStack) <- get
-        lastEval newStack
+        (varMap,newStack) <- get
+        -- evaluating the stack, and transforming the varilbes to their values
+        let evalStack = map (\e -> eval e varMap) newStack
+        put (varMap,evalStack)
         return ()
-
-    -- evaluating the varibles to there actual values  
-    lastEval :: Stack -> ProgState ()
-    lastEval [] = return ()
-    lastEval (x:xs) = do
-         a <- popAndEval
-         push a
-         return ()
 
 
     changeState :: Stack -> ProgState ()
@@ -55,20 +50,20 @@ module Stack.Stack (
         StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
         AssignmentOp t -> handleVariable t
-        Literal (Variable var) -> assignVariable (Variable var)
         ControlFlow t -> handleControlFlow t
+        Literal (Variable var) -> assignVariable (Variable var)
+        Literal var -> pushToEnd (Literal var)
         otherwise -> return ()
         
 
-    removeOp :: StackElement -> Bool
-    removeOp token = case token of
-        -- Literal _ -> True
-        Literal _ -> True
-        Exec _ -> True
-        VariableStack _ -> True
-        -- Variable _ -> True
-        otherwise -> False
-    
+      -- evaluating the varibles to there actual values  
+    eval ::  StackElement -> AssignmentMap -> StackElement
+    eval maybeVar assignmentMap = case maybeVar of
+        Literal (Variable var) -> case M.lookup (Literal (Variable var)) assignmentMap of
+            Nothing ->  (Literal $ StackString "Error") -- TODO: error, there is no such variable(this is a problem in the program)
+            Just n -> Literal n
+        
+        otherwise -> maybeVar 
 
 
 -- ---------------------- Control flow --------------------------------
@@ -102,13 +97,13 @@ module Stack.Stack (
 
     handleIf :: ProgState ()
     handleIf = do
-        currentStack <- get
+        (_,currentStack) <- get
         case (length currentStack) >= 3 of
             True -> do
-                condition <- pop
-                trueExec <- pop
-                falseExec <- pop
-            -- if there are no two execution provide an error
+                condition <- popFromEnd
+                trueExec <- popFromEnd
+                falseExec <- popFromEnd
+            -- TODO: error, if there are no two execution provide an error
                 case condition of
                     Literal (StackBool True)  -> do
                         push (executeCodeLine (unWrap trueExec) ((M.empty :: AssignmentMap), []))
@@ -120,6 +115,13 @@ module Stack.Stack (
                         push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
                         return ()
             False -> do 
-                put ((M.empty :: AssignmentMap),[Literal (StackString "if input error")]) -- handle error with proper if statment
+                put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
                 return ()
                 
+
+    -- deprecated
+    removeOp :: StackElement -> Bool
+    removeOp token = case token of
+        Literal _ -> True
+        Exec _ -> True
+        otherwise -> False

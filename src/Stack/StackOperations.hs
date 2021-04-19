@@ -7,6 +7,7 @@ module Stack.StackOperations (
     popAndEval,
     stackIsEmpty
     ,pushToEnd
+    ,popFromEnd
  ) where
     import Control.Monad.State
     import qualified Data.Map.Strict as M
@@ -17,8 +18,13 @@ module Stack.StackOperations (
 
    -- TODO: change the name of the file to manage state
    -- TODO: change the naming from xy to more useful
+
+   -- gather all of the helper functions to handle the state
     pop :: ProgState (StackElement)
     pop = state $ \(y,(x:xs)) -> (x,(y,xs))
+
+    popFromEnd :: ProgState (StackElement)
+    popFromEnd = state $ \(y,(xs)) -> ((last xs),(y,(init xs)))
 
     stackIsEmpty :: ProgState(Bool)
     stackIsEmpty = do
@@ -31,7 +37,7 @@ module Stack.StackOperations (
 
     popAndEval :: ProgState (StackElement)
     popAndEval  = do 
-       maybeVar <- pop
+       maybeVar <- popFromEnd
        case maybeVar of
              Literal (Variable var) -> do
                 assignmentMap <- getVarMap
@@ -43,8 +49,7 @@ module Stack.StackOperations (
             --  Literal x -> do
             --     return x
              otherwise -> do
-                return maybeVar-- TODO: error, 
-                
+                return maybeVar-- TODO: error,
 
     
     push :: StackElement -> ProgState ()

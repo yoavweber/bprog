@@ -4,7 +4,7 @@ module Operations.Arithmetic where
     import qualified Data.Map.Strict as M
 
 
-    import Stack.StackOperations(pop, push,getVarMap,popAndEval,stackIsEmpty)
+    import Stack.StackOperations(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,pushToEnd)
     import Types
 
     -- TODO: try to create a generic function which getting as an input the operation
@@ -13,51 +13,56 @@ module Operations.Arithmetic where
         Arithmetic "+" -> opAdd
         Arithmetic "==" -> opEq
         Arithmetic "*" -> opMult 
+        Arithmetic "-" -> opMin
         -- otherwise ->  put [Arithmetics "1"]
 
     
-    
     opMult :: ProgState ()
     opMult = do
-        (_,stack) <- get
+        (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
-                push (Arithmetic "*")
+                pushToEnd (Arithmetic "*")
                 return ()
             False -> do
                 a <- popAndEval
                 b <- popAndEval 
                 let res =  a * b
-                -- res <- ress
-                case res of
-                    -- StackString "error!" -> do
-                    --     push (Error "you matched the wrong type") -- handle error better
-                    --     return ()
-                    otherwise -> do
-                        push (res)
-                        return ()
-            
+                pushToEnd res
+                -- put (ignore, newStack)
+                return()
+
+
+        -- if there is not enough element, push it as execution that would be trigerd on another element
+    opMin :: ProgState ()
+    opMin = do
+        (ignore,stack) <- get
+        case length stack < 2 of 
+            True -> do 
+                pushToEnd (Arithmetic "-")
+                return ()
+            False -> do
+                a <- popAndEval
+                b <- popAndEval 
+                let res =  b - a 
+                pushToEnd res
+                return()                        
+    
 
     -- if there is not enough element, push it as execution that would be trigerd on another element
     opAdd :: ProgState ()
     opAdd = do
-        (_,stack) <- get
+        (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
-                push (Arithmetic "+")
+                pushToEnd (Arithmetic "+")
                 return ()
             False -> do
                 a <- popAndEval
                 b <- popAndEval 
                 let res =  a + b
-                -- res <- ress
-                case res of
-                    -- StackString "error!" -> do
-                    --     push (Error "you matched the wrong type") -- handle error better
-                    --     return ()
-                    otherwise -> do
-                        push (res)
-                        return ()
+                pushToEnd res
+                return()
             
 
 
@@ -68,41 +73,10 @@ module Operations.Arithmetic where
         b <- popAndEval
         let res = a == b
         case res of
-            False -> push (Literal (StackBool False))
-            otherwise -> push (Literal (StackBool True))
+            False -> pushToEnd (Literal (StackBool False))
+            otherwise -> pushToEnd (Literal (StackBool True))
 
 
 
 
-    evalVar :: StackElement ->  ProgState (StackLiteral)
-    evalVar maybeVar = case maybeVar of
-        Literal (Variable var) -> do
-            assignmentMap <- getVarMap
-            case M.lookup (Literal (Variable var)) assignmentMap of
-                Nothing -> do
-                    return (StackString "Error") -- TODO: error, there is no such variable(this is a problem in the program)
-                Just n -> do
-                    return n
-        Literal x -> do
-            return x
-        otherwise -> do
-            return (StackString "Error, operation not supported") -- TODO: error, 
-                
-
-
-    -- popAndEval :: ProgState (StackLiteral)
-    -- popAndEval  = do 
-    --     maybeVar <- pop
-    --     case maybeVar of
-    --         Literal (Variable var) -> do
-    --             assignmentMap <- getVarMap
-    --             case M.lookup (Literal (Variable var)) assignmentMap of
-    --                 Nothing -> do
-    --                     return (StackString "Error") -- TODO: error, there is no such variable(this is a problem in the program)
-    --                 Just n -> do
-    --                     return n
-    --         Literal x -> do
-    --             return x
-    --         otherwise -> do
-    --             return (StackString "Error, operation not supported") -- TODO: error, 
                 

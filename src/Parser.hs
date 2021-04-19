@@ -16,6 +16,7 @@ module Parser where
         | e == "+" = Arithmetic e
         | e == "*" = Arithmetic e
         | e == "==" = Arithmetic e
+        | e == "-" = Arithmetic e
         -- | e == "+" = Arithmetic (StackOps e)
         -- | e == "&&" = Logical e
         | (e == "pop" || e == "swap" || e == "dup") = StackOp e

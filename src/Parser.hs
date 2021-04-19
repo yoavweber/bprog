@@ -14,10 +14,11 @@ module Parser where
     getTokenType :: String -> StackElement
     getTokenType e
         | e == "+" = Arithmetic e
+        | e == "*" = Arithmetic e
         | e == "==" = Arithmetic e
         -- | e == "+" = Arithmetic (StackOps e)
         -- | e == "&&" = Logical e
-        -- | (e == "pop" || e == "swap" || e == "dup") = StackOp e
+        | (e == "pop" || e == "swap" || e == "dup") = StackOp e
         | checkListOp e == True = ListOp e
         -- | (head e) == '[' =  Literal (List  ( words  (tail $ init e)))
         | (head e) == '[' =  Literal (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal})$ words  (tail $ init e)))
@@ -27,15 +28,15 @@ module Parser where
         | e == ":=" = AssignmentOp e
         | (head e) == '{' = Exec (tail $ init e)
         | checkLiteral e == True = case  assignLiteral e of
-            Nothing -> Literal $ Varible e
+            Nothing -> Literal $ Variable e
             Just literal -> Literal literal
-        | otherwise = Literal $ Varible e -- TODO: error, handle undefine value
+        | otherwise = Literal $ Variable e -- TODO: error, handle undefine value
         -- | otherwise = TokenError e
 
     checkLiteral :: String -> Bool
     checkLiteral e
         | (head e) == '\"' =  True
-        -- | (head e) == '[' =  True
+        | (head e) == '[' =  True
         | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) = True
         | (readMaybe e :: Maybe Float ) == Just (read e :: Float) = True
         | otherwise = False
@@ -45,7 +46,9 @@ module Parser where
     assignLiteral e 
         | (head e) == '[' =  Just (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ words  (tail $ init e)))
         | (head e) == '\"' = Just (StackString e)
-        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) =   Just (StackBool (read e :: Bool) )
+
+        -- | (head e) == '[' = Just (List $  map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ words (tail $ init e)  ) 
+        | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) = Just (StackBool (read e :: Bool) )
         | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
             Nothing -> Nothing-- this is an assignment
             Just n -> Just (StackFloat n)
@@ -54,11 +57,6 @@ module Parser where
             Just n -> Just(StackInt n)
         | otherwise = Nothing -- this is an assignment
 
-        -- | (readMaybe e :: Maybe Float ) /= Nothing = Literal (StackFloat e)
-        -- | (readMaybe e :: Maybe Int ) == Just (read e :: Int) = Literal (StackInt e)
-        -- | (readMaybe e :: Maybe Bool ) == Just (read e :: Bool) = Literal (StackBool e)
-        -- | otherwise
-        -- otherwise assign it to a value
 
 
     intOrFloat :: String -> String
@@ -81,22 +79,11 @@ module Parser where
 
           
 
-
-    -- use elemIndices to plit the list
-    -- tokenizeList :: [String] ->  [String]
-    -- tokenizeList list = do
-    --     case (any (=="[") list) of
-    --         True -> tokenizeList ((takeWhile (/= "[") list) ++ (parseList $ tail $ dropWhile (/= "[") list ))
-    --         False -> list
-
-
     tokenize :: [String] -> [String]
     tokenize list = tokenizeCurlyBrackets $ handleListWrapper $ parseString list 
 
    
    
-            
-
     parseString :: [String] ->  [String]
     parseString list  = do
         let quotesIndices = "\"" `elemIndices` list
@@ -151,7 +138,8 @@ module Parser where
     concatListElement :: Int -> Int -> [String] -> [String]
     concatListElement startListIndex endListIndex list =
         let arrayToken = slice (startListIndex + 1) endListIndex list
-        in (fst $ splitAt startListIndex list  ) ++ ["[ " ++ (intercalate " " (handleList arrayToken)) ++ "]"] ++ (tail $ snd $ splitAt endListIndex list)
+        -- in (fst $ splitAt startListIndex list  ) ++ [intersperse ' ' $ "[ " ++ (intercalate " " (handleList arrayToken)) ++ " ]"] ++ (tail $ snd $ splitAt endListIndex list)
+        in (fst $ splitAt startListIndex list  ) ++ ["[ " ++ (intercalate " " (handleList arrayToken)) ++ " ]"] ++ (tail $ snd $ splitAt endListIndex list)
 
     handleList :: [String] -> [String]
     handleList list = case (any (=="[") list ) of

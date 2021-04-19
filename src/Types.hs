@@ -5,7 +5,7 @@ module Types where
 
 
     -- data Symbol =
-    --     Varible StackLiteral
+    --     Variable StackLiteral
     --     | Func Ops-- this can only be exec
 
     data StackLiteral 
@@ -13,6 +13,7 @@ module Types where
         | StackString String
         | StackFloat   Float
         | StackBool   Bool
+        | Variable   String
         | List    [StackLiteral]
         deriving(Show,Ord)
 
@@ -26,7 +27,7 @@ module Types where
         | Literal StackLiteral
         | Error String
         | AssignmentOp String
-        | VaribleStack (AssignmentMap)
+        | VariableStack (AssignmentMap)
         deriving(Show,Eq,Ord)
      
     
@@ -68,10 +69,20 @@ module Types where
 
     instance Num StackLiteral where
         StackInt a + StackInt b = StackInt (a + b)
+        StackFloat a + StackFloat b = StackFloat (a + b)
+        StackInt a + StackFloat b = StackFloat ((fromIntegral a :: Float) + b)
         StackInt a + _  = StackString "error!"
+        ------------------- mult ---------------------------
+        StackInt a * StackInt b = StackInt (a * b)
+        StackFloat a * StackFloat b = StackFloat (a * b)
+        StackInt a * StackFloat b = StackFloat ((fromIntegral a :: Float) * b)
+        StackInt a * _  = StackString "error!"
+
+
     
     instance Num Ops where
         Literal a + Literal b = Literal (a + b)
+        Literal a * Literal b = Literal (a * b)
 
 
     data ProgramError =

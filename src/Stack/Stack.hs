@@ -38,7 +38,7 @@ module Stack.Stack (
     lastEval [] = return ()
     lastEval (x:xs) = do
          a <- popAndEval
-         push (Literal a)
+         push a
          return ()
 
 

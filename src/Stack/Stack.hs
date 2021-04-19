@@ -1,6 +1,7 @@
 module Stack.Stack (
     stackManip,
-    executeCode
+    executeCode,
+    removeOp
  ) where
     import Control.Monad.State
     import Types
@@ -28,9 +29,17 @@ module Stack.Stack (
         let removeTokens = (filter (\token -> removeOp token) currentStack )
         put (varMap,removeTokens) 
         changeState currentStack
-        newStack <- get
+        (_,newStack) <- get
+        lastEval newStack
         return ()
 
+    -- evaluating the varibles to there actual values  
+    lastEval :: Stack -> ProgState ()
+    lastEval [] = return ()
+    lastEval (x:xs) = do
+         a <- popAndEval
+         push (Literal a)
+         return ()
 
 
     changeState :: Stack -> ProgState ()
@@ -43,12 +52,11 @@ module Stack.Stack (
     handleTokens :: StackElement -> ProgState ()
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic  (Arithmetic t)
-        -- StackOp t -> handleStackOp (StackOp t)
+        StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
-        AssignmentOp t -> handleVarible t
-        Literal (Varible t) -> handleVarible t
+        AssignmentOp t -> handleVariable t
+        Literal (Variable var) -> assignVariable (Variable var)
         ControlFlow t -> handleControlFlow t
-
         otherwise -> return ()
         
 
@@ -57,8 +65,8 @@ module Stack.Stack (
         -- Literal _ -> True
         Literal _ -> True
         Exec _ -> True
-        VaribleStack _ -> True
-        -- Varible _ -> True
+        VariableStack _ -> True
+        -- Variable _ -> True
         otherwise -> False
     
 
@@ -87,7 +95,7 @@ module Stack.Stack (
     handleExecution = do
         executionLine <- pop
         let command = unWrap executionLine
-        let res = executeCodeLine command (M.fromList[(Literal (Varible "Test"), StackString "this should be empty value")], [])
+        let res = executeCodeLine command ((M.empty :: AssignmentMap), [])
         push (res)
         return ()
 

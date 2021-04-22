@@ -4,7 +4,7 @@ module Operations.Arithmetic where
     import qualified Data.Map.Strict as M
 
 
-    import Stack.StackOperations(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,pushToEnd)
+    import Stack.StackOperations(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push)
     import Types
 
     -- TODO: try to create a generic function which getting as an input the operation
@@ -22,13 +22,13 @@ module Operations.Arithmetic where
         (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
-                pushToEnd (Arithmetic "*")
+                push (Arithmetic "*")
                 return ()
             False -> do
                 a <- popAndEval
                 b <- popAndEval 
                 let res =  a * b
-                pushToEnd res
+                push res
                 -- put (ignore, newStack)
                 return()
 
@@ -39,13 +39,13 @@ module Operations.Arithmetic where
         (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
-                pushToEnd (Arithmetic "-")
+                push (Arithmetic "-")
                 return ()
             False -> do
                 a <- popAndEval
                 b <- popAndEval 
                 let res =  b - a 
-                pushToEnd res
+                push res
                 return()                        
     
 
@@ -55,13 +55,13 @@ module Operations.Arithmetic where
         (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
-                pushToEnd (Arithmetic "+")
+                push (Arithmetic "+")
                 return ()
             False -> do
                 a <- popAndEval
                 b <- popAndEval 
                 let res =  a + b
-                pushToEnd res
+                push res
                 return()
             
 
@@ -73,8 +73,8 @@ module Operations.Arithmetic where
         b <- popAndEval
         let res = a == b
         case res of
-            False -> pushToEnd (Literal (StackBool False))
-            otherwise -> pushToEnd (Literal (StackBool True))
+            False -> push (Literal (StackBool False))
+            otherwise -> push (Literal (StackBool True))
 
 
 

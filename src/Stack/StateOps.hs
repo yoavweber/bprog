@@ -1,4 +1,4 @@
-module Stack.StackOperations (
+module Stack.StateOps (
     pop,
     push,
     getVarMap,
@@ -21,11 +21,11 @@ module Stack.StackOperations (
    -- TODO: change the naming from xy to more useful
 
    -- gather all of the helper functions to handle the state
-    pop :: ProgState (StackElement)
-    pop = state $ \(y,(x:xs)) -> (x,(y,xs))
-
     popFromEnd :: ProgState (StackElement)
-    popFromEnd = state $ \(y,(xs)) -> case xs of { [] ->  ((last xs),(y,[])); otherwise -> ((last xs),(y,(init xs)))} 
+    popFromEnd = state $ \(y,(x:xs)) -> (x,(y,xs))
+
+    pop :: ProgState (StackElement)
+    pop = state $ \(y,(xs)) -> case xs of { [] ->  ((last xs),(y,[])); otherwise -> ((last xs),(y,(init xs)))} 
 
    --  popFromEnd = state $ \(y,(xs)) -> ((last xs),(y,(init xs)))
 
@@ -40,7 +40,7 @@ module Stack.StackOperations (
 
     popAndEval :: ProgState (StackElement)
     popAndEval  = do 
-       maybeVar <- popFromEnd
+       maybeVar <- pop
        case maybeVar of
              Literal (Variable var) -> do
                 assignmentMap <- getVarMap
@@ -55,11 +55,11 @@ module Stack.StackOperations (
                 return maybeVar-- TODO: error,
 
     
-    push :: StackElement -> ProgState ()
-    push a = state $ \(y,xs) -> ((),(y,a:xs))
-
     pushToEnd :: StackElement -> ProgState ()
-    pushToEnd a = state $ \(y,xs) -> ((),(y,xs ++ [a]))
+    pushToEnd a = state $ \(y,xs) -> ((),(y,a:xs))
+
+    push :: StackElement -> ProgState ()
+    push a = state $ \(y,xs) -> ((),(y,xs ++ [a]))
 
 
     concatState :: [StackElement] -> ProgState ()

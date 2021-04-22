@@ -190,3 +190,24 @@ module Stack.Stack (
     fold' (x:xs) op stack = 
         let foldStack = executeCodeLine (unWrap op) ( (M.empty :: AssignmentMap),(stack ++ [Literal x]) )
         in fold' xs op foldStack
+        
+
+    handleTimes :: ProgState()
+    handleTimes = do
+        expression <- pop
+        time <- popAndEval
+        case time of
+            Literal num -> do
+                let res = times num expression
+                concatState res
+                return ()
+
+
+
+    times :: StackLiteral -> StackElement -> Stack
+    times num expression =
+        let timesWrapper (StackInt 0) _ stack = stack
+            timesWrapper (num) expression stack = timesWrapper (num - StackInt 1) expression (stack ++ executeCodeLine (unWrap expression) ( (M.empty :: AssignmentMap),([])))
+        in
+            timesWrapper num expression []
+

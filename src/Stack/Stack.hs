@@ -100,6 +100,21 @@ module Stack.Stack (
         -- Literal t -> t 
         Exec t -> t
 
+    unWrapStackLiteral :: StackElement -> StackLiteral
+    unWrapStackLiteral a = case a of
+        Literal t -> t 
+        -- Exec t -> t
+        -- otherwise ->
+
+    handleControlFlow :: String -> ProgState ()
+    handleControlFlow t = case t of
+        "exec" -> handleExecution 
+        "if" -> handleIf
+        "map" -> handleMap
+        "foldl" -> handleFold
+    
+
+
     handleExecution :: ProgState ()
     handleExecution = do
         executionLine <- pop
@@ -132,13 +147,46 @@ module Stack.Stack (
                         return ()
             False -> do 
                 -- put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
-                pushToEnd (ControlFlow "if")
-                return ()
-                
 
-    -- deprecated
-    removeOp :: StackElement -> Bool
-    removeOp token = case token of
-        Literal _ -> True
-        Exec _ -> True
-        otherwise -> False
+    handleEach ::  ProgState ()
+    handleEach = do
+        experssion <- pop
+        list <- pop
+        case list of
+            Literal (List x) -> do 
+                let stackElements = map (\e ->  head $ executeCodeLine (unWrap experssion) ( (M.empty :: AssignmentMap),([Literal e]) ) )  x
+                concatState stackElements
+        -- currentStack <- get
+                return ()
+
+
+    handleMap ::  ProgState ()
+    handleMap = do
+        experssion <- pop
+        list <- pop
+        case list of
+            Literal (List x) -> do 
+                let literalList = map (\e -> unWrapStackLiteral ( head $ executeCodeLine (unWrap experssion) ( (M.empty :: AssignmentMap),([Literal e]) ) ))  x
+                push $ Literal $ List literalList
+                -- concatState t
+        -- currentStack <- get
+                return ()
+
+        
+    handleFold ::  ProgState ()
+    handleFold = do
+        op <- pop
+        acc <- pop
+        list <- pop
+        case list of
+            Literal (List listLiteral) -> do 
+                let res = fold' listLiteral op [acc]
+                push $ (head res)
+                return ()
+
+
+    fold' :: [StackLiteral] -> Ops -> Stack -> Stack
+    fold' [] _ stack = stack 
+    fold' (x:xs) op stack = 
+        let foldStack = executeCodeLine (unWrap op) ( (M.empty :: AssignmentMap),(stack ++ [Literal x]) )
+        in fold' xs op foldStack

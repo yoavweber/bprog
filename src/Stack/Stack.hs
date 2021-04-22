@@ -29,11 +29,24 @@ module Stack.Stack (
         (varMap,currentStack) <- get
         -- FIXME: this is a fix, refactoring is needed
         put (varMap,[])
+        -- let firstEval = (filter (\token -> evalValues token) currentStack )
+        -- handling simple operations that don't require look up
+        -- changeState firstEval
         changeState currentStack
-        (varMap,newStack) <- get
+
+
+        -- this is with all the complex operations
+        -- let sndEval = (filter (\token -> removeOp token) currentStack )
+        -- changeState sndEval
+
+        -- put (varMap,removeTokens)
+        -- changeState newStack
+        (varMap,newStacks) <- get 
         -- evaluating the stack, and transforming the varilbes to their values
-        let evalStack = map (\e -> eval e varMap) newStack
-        put (varMap,evalStack)
+        -- let evalStack = eval newStack varMap
+
+        -- let evalStack = map (\e -> eval e varMap) newStack
+        -- put (varMap,newStacks)
         return ()
 
 

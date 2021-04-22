@@ -8,6 +8,7 @@ module Stack.StackOperations (
     stackIsEmpty
     ,pushToEnd
     ,popFromEnd
+    ,concatState
  ) where
     import Control.Monad.State
     import qualified Data.Map.Strict as M
@@ -24,7 +25,9 @@ module Stack.StackOperations (
     pop = state $ \(y,(x:xs)) -> (x,(y,xs))
 
     popFromEnd :: ProgState (StackElement)
-    popFromEnd = state $ \(y,(xs)) -> ((last xs),(y,(init xs)))
+    popFromEnd = state $ \(y,(xs)) -> case xs of { [] ->  ((last xs),(y,[])); otherwise -> ((last xs),(y,(init xs)))} 
+
+   --  popFromEnd = state $ \(y,(xs)) -> ((last xs),(y,(init xs)))
 
     stackIsEmpty :: ProgState(Bool)
     stackIsEmpty = do
@@ -57,6 +60,10 @@ module Stack.StackOperations (
 
     pushToEnd :: StackElement -> ProgState ()
     pushToEnd a = state $ \(y,xs) -> ((),(y,xs ++ [a]))
+
+
+    concatState :: [StackElement] -> ProgState ()
+    concatState a = state $ \(y,xs) -> ((),(y,xs ++ a))
     
    --  picking the first element from the stack
     peekStack :: ProgState (StackElement)

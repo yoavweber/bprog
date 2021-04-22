@@ -64,6 +64,7 @@ module Stack.Stack (
         ListOp t -> handleListOp t
         AssignmentOp t -> handleVariable t
         ControlFlow t -> handleControlFlow t
+        Exec t -> pushToEnd (Exec t)
         Literal (Variable var) -> assignVariable (Variable var)
         Literal var -> pushToEnd (Literal var)
         otherwise -> return ()
@@ -87,10 +88,10 @@ module Stack.Stack (
         "if" -> handleIf
     
 
-    executeCodeLine :: String -> (AssignmentMap, Stack) -> StackElement
+    executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack
     executeCodeLine line (varMap,previousStack) = 
         let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
-        in snd (execState stackManip (varMap, stack)) !! 0
+        in snd (execState stackManip (varMap, stack))
     
 
 
@@ -104,7 +105,7 @@ module Stack.Stack (
         executionLine <- pop
         let command = unWrap executionLine
         let res = executeCodeLine command ((M.empty :: AssignmentMap), [])
-        push (res)
+        concatState (res)
         return ()
 
 
@@ -113,22 +114,25 @@ module Stack.Stack (
         (_,currentStack) <- get
         case (length currentStack) >= 3 of
             True -> do
-                condition <- popFromEnd
-                trueExec <- popFromEnd
                 falseExec <- popFromEnd
+                trueExec <- popFromEnd
+                condition <- popFromEnd
             -- TODO: error, if there are no two execution provide an error
                 case condition of
                     Literal (StackBool True)  -> do
-                        push (executeCodeLine (unWrap trueExec) ((M.empty :: AssignmentMap), []))
+                        concatState (executeCodeLine (unWrap trueExec) ((M.empty :: AssignmentMap), []))
+                        stackManip
                         return ()
                     Literal (StackBool False) -> do
-                        push (executeCodeLine (unWrap falseExec) ((M.empty :: AssignmentMap), []))
+                        concatState (executeCodeLine (unWrap falseExec) ((M.empty :: AssignmentMap), []))
+                        stackManip
                         return ()
                     otherwise -> do
                         push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
                         return ()
             False -> do 
-                put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
+                -- put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
+                pushToEnd (ControlFlow "if")
                 return ()
                 
 

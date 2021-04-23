@@ -1,6 +1,6 @@
 module Operations.StackOp where
     import Control.Monad.State
-    import Stack.StackOperations(pop, push)
+    import Stack.StateOps(pop, push,popFromEnd)
 
     import Types
 

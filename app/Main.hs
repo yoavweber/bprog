@@ -13,7 +13,8 @@ updateState previousStack = do
     line <- getLine
     let (newVarMap,newStack) = executeCode line previousStack
     print $ (newStack, "stack after manipulation")
-    print $ ( newStack !! 0, "stack top value")
+    -- print $ ( newStack !! 0, "stack top value")
+    print $ (newVarMap, "var map after manipulation")
     updateState (newVarMap,newStack)
 
 

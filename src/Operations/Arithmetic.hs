@@ -1,10 +1,8 @@
 module Operations.Arithmetic where
-    import Text.Read (readMaybe)
     import Control.Monad.State
     import qualified Data.Map.Strict as M
 
-
-    import Stack.StackOperations(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push)
+    import Stack.StateOps(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push)
     import Types
 
     -- TODO: try to create a generic function which getting as an input the operation

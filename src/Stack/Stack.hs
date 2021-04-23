@@ -1,8 +1,10 @@
 module Stack.Stack (
     stackManip,
     executeCode,
-    removeOp,
-    changeState
+    executeCodeLine,
+    changeState,
+    unWrap,
+    fold'
  ) where
     import Control.Monad.State
     import Types
@@ -11,9 +13,10 @@ module Stack.Stack (
 
     import Operations.StackOp
     import Operations.Arithmetic
-    import Operations.ListOp
+    import Operations.ListOp(handleListOp)
     import Operations.Symbol
-    import Stack.StackOperations
+    -- import Operations.ControlFlow
+    import Stack.StateOps
     import Parser
 
 
@@ -64,41 +67,39 @@ module Stack.Stack (
         ListOp t -> handleListOp t
         AssignmentOp t -> handleVariable t
         ControlFlow t -> handleControlFlow t
-        Exec t -> pushToEnd (Exec t)
+        Exec t -> push (Exec t)
         Literal (Variable var) -> assignVariable (Variable var)
-        Literal var -> pushToEnd (Literal var)
+        Literal var -> push (Literal var)
         otherwise -> return ()
         
 
       -- evaluating the varibles to there actual values  
-    eval ::  StackElement -> AssignmentMap -> StackElement
-    eval maybeVar assignmentMap = case maybeVar of
+    eval ::  [StackElement] -> AssignmentMap -> [StackElement]
+    eval [] _ = []
+    eval (maybeVar:stack) assignmentMap = case maybeVar of
         Literal (Variable var) -> case M.lookup (Literal (Variable var)) assignmentMap of
-            Nothing ->  (Literal $ StackString "Error") -- TODO: error, there is no such variable(this is a problem in the program)
-            Just n -> Literal n
-        
-        otherwise -> maybeVar 
+            Nothing ->  (Literal $ StackString "Error"):(eval stack assignmentMap)
+            Just n -> Literal n:(eval stack assignmentMap)
+        -- ControlFlow "if" -> case length stack < 2 of
+        --     False -> do 
+        --         execTrue:execFalse:stack
+        --         (handleIf' execTrue execFalse):(eval stack assignmentMap)
+            -- True -> do TODO: error, send error and stop the program
+
+        otherwise -> maybeVar:(eval stack assignmentMap)
 
 
 -- ---------------------- Control flow --------------------------------
-
-    handleControlFlow :: String -> ProgState ()
-    handleControlFlow t = case t of
-        "exec" -> handleExecution 
-        "if" -> handleIf
-    
-
     executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack
     executeCodeLine line (varMap,previousStack) = 
-        let stack =  (map (\e -> getTokenType e) $ tokenize (words line)) ++ previousStack
+        let stack =  previousStack ++ (map (\e -> getTokenType e) $ tokenize (words line))  
         in snd (execState stackManip (varMap, stack))
-    
-
 
     unWrap :: Ops -> String
     unWrap a = case a of
         -- Literal t -> t 
         Exec t -> t
+        -- otherwise ->
 
     unWrapStackLiteral :: StackElement -> StackLiteral
     unWrapStackLiteral a = case a of
@@ -112,6 +113,7 @@ module Stack.Stack (
         "if" -> handleIf
         "map" -> handleMap
         "foldl" -> handleFold
+        "times" -> handleTimes
     
 
 
@@ -129,9 +131,9 @@ module Stack.Stack (
         (_,currentStack) <- get
         case (length currentStack) >= 3 of
             True -> do
-                falseExec <- popFromEnd
-                trueExec <- popFromEnd
-                condition <- popFromEnd
+                falseExec <- pop
+                trueExec <- pop
+                condition <- pop
             -- TODO: error, if there are no two execution provide an error
                 case condition of
                     Literal (StackBool True)  -> do
@@ -147,6 +149,8 @@ module Stack.Stack (
                         return ()
             False -> do 
                 -- put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
+                push (ControlFlow "if")
+                return ()
 
     handleEach ::  ProgState ()
     handleEach = do
@@ -178,6 +182,7 @@ module Stack.Stack (
         op <- pop
         acc <- pop
         list <- pop
+        -- TODO: error, handle different error cases
         case list of
             Literal (List listLiteral) -> do 
                 let res = fold' listLiteral op [acc]
@@ -205,9 +210,28 @@ module Stack.Stack (
 
 
     times :: StackLiteral -> StackElement -> Stack
-    times num expression =
+    times (StackInt num) expression =
         let timesWrapper (StackInt 0) _ stack = stack
-            timesWrapper (num) expression stack = timesWrapper (num - StackInt 1) expression (stack ++ executeCodeLine (unWrap expression) ( (M.empty :: AssignmentMap),([])))
+            timesWrapper (StackInt num) expression stack = timesWrapper ((StackInt num) - StackInt 1) expression (stack ++ executeCodeLine (unWrap expression) ( (M.empty :: AssignmentMap),([])))
         in
-            timesWrapper num expression []
+            timesWrapper (StackInt num) expression []
+    times _ expression = []
 
+
+
+    -- should added to all operators that don't requrire back lookup?
+    -- evalValues :: StackElement -> Bool
+    -- evalValues token = case token of
+    --     Literal _ -> True
+    --     Exec _ -> True
+    --     Arithmetic _ -> True
+    --     otherwise -> False
+
+
+
+    -- removeOp :: StackElement -> Bool
+    -- removeOp token = case token of
+    --     Literal _ -> False
+    --     Exec _ -> False
+    --     Arithmetic _ -> False
+    --     otherwise -> True

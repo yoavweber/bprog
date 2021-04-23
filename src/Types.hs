@@ -27,7 +27,6 @@ module Types where
         | Literal StackLiteral
         | Error String
         | AssignmentOp String
-        | VariableStack (AssignmentMap)
         deriving(Show,Eq,Ord)
      
     
@@ -55,6 +54,11 @@ module Types where
         StackBool a == _ = False
         -- StackBool a == StackInt b = a == (M.lookup b)
 
+
+    -- instance Functor (StackLiteral) where 
+    --     fmap f (Literal a) = Literal(f a) 
+
+
     instance Functor TokenType where  
         fmap f (Literals a) = Literals (f a)  
         fmap f (Execs a) = Literals (f a)  
@@ -71,7 +75,14 @@ module Types where
         StackInt a + StackInt b = StackInt (a + b)
         StackFloat a + StackFloat b = StackFloat (a + b)
         StackInt a + StackFloat b = StackFloat ((fromIntegral a :: Float) + b)
+        StackFloat a + StackInt b = StackFloat ((fromIntegral b :: Float) + a)
+
         StackInt a + _  = StackString "error!"
+        -------------------- min ---------------------------
+        StackInt a - StackInt b = StackInt (a - b)
+        StackFloat a - StackFloat b = StackFloat (a - b)
+        StackInt a - StackFloat b = StackFloat ((fromIntegral a :: Float) - b)
+        StackInt a - _  = StackString "error!"
         ------------------- mult ---------------------------
         StackInt a * StackInt b = StackInt (a * b)
         StackFloat a * StackFloat b = StackFloat (a * b)
@@ -82,7 +93,9 @@ module Types where
     
     instance Num Ops where
         Literal a + Literal b = Literal (a + b)
+        Literal a - Literal b = Literal (a - b)
         Literal a * Literal b = Literal (a * b)
+        Literal a * _ = Literal (StackString "error!")
 
 
     data ProgramError =

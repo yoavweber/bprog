@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: feb2839947dd9de76ec1db4fe4c717014fa68705690c7c2aaa7eb536121ed966
+-- hash: ddbe542032e57ee48ccad37b4f67a2cb1b23f9a7767c9c0efea67540eb3beebb
 
 name:           bprog
 version:        0.1.0.0
@@ -31,9 +31,12 @@ library
       Operations.ListOp
       Operations.Logical
       Operations.StackOp
+      Operations.Symbol
+      Operations.ControlFlow
       Parser
       Stack.Stack
-      Stack.StackOperations
+      Stack.StateOps
+      Stack.Exec
       TokenType
       Types
   other-modules:
@@ -42,10 +45,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , containers
     , mtl
     , split
-    , hspec
-    , containers
   default-language: Haskell2010
 
 executable bprog-exe
@@ -58,7 +60,7 @@ executable bprog-exe
   build-depends:
       base >=4.7 && <5
     , bprog
-    , mtl
+        , mtl
     , split
     , containers
   default-language: Haskell2010
@@ -74,6 +76,7 @@ test-suite bprog-test
   build-depends:
       base >=4.7 && <5
     , bprog
+    , containers
     , hspec
     , mtl
   default-language: Haskell2010

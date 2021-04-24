@@ -21,18 +21,20 @@ module Parser where
         -- | e == "&&" = Logical e
         | (e == "pop" || e == "swap" || e == "dup") = StackOp e
         | checkListOp e == True = ListOp e
-        -- | (head e) == '[' =  Literal (List  ( words  (tail $ init e)))
-        | (head e) == '[' =  Literal (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal})$ words  (tail $ init e)))
-        -- -- | (head e) == '[' =  List ([e])
         | e == "if" = ControlFlow e 
         | e == "exec" = ControlFlow e 
+        | e == "map" = ControlFlow e
+        | e == "foldl" = ControlFlow e 
+        | e == "times" = ControlFlow e 
         | e == ":=" = AssignmentOp e
         | (head e) == '{' = Exec (tail $ init e)
-        | checkLiteral e == True = case  assignLiteral e of
+        | otherwise = case assignLiteral e of
             Nothing -> Literal $ Variable e
             Just literal -> Literal literal
-        | otherwise = Literal $ Variable e -- TODO: error, handle undefine value
-        -- | otherwise = TokenError e
+        -- | checkLiteral e == True = case  assignLiteral e of
+        --     Nothing -> Literal $ Variable e
+        --     Just literal -> Literal literal
+        -- | otherwise = Literal $ Variable e -- TODO: error, handle undefine value
 
     checkLiteral :: String -> Bool
     checkLiteral e
@@ -45,10 +47,10 @@ module Parser where
     -- TODO: very dirty solution, refactor!
     assignLiteral :: String -> Maybe StackLiteral
     assignLiteral e 
-        | (head e) == '[' =  Just (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ words  (tail $ init e)))
+        | e == "[]" = Just (List [])
+        | (head e) == '[' =  Just (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ tokenize $ lists $ ( tail $ init e)))
+        -- | (head e) == '[' =  Just (List  ( map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ tokenize $ words  ( tail $ init e)))
         | (head e) == '\"' = Just (StackString e)
-
-        -- | (head e) == '[' = Just (List $  map (\t -> case  assignLiteral t of {Nothing -> Variable t;  Just literal ->  literal}) $ words (tail $ init e)  ) 
         | (readMaybe e :: Maybe Bool) == Just (read e :: Bool) = Just (StackBool (read e :: Bool) )
         | intOrFloat e == "float" = case readMaybe e :: Maybe Float of
             Nothing -> Nothing-- this is an assignment
@@ -65,6 +67,8 @@ module Parser where
         True -> "float"
         False -> "int"
 
+    lists :: String -> [String]
+    lists a = filter (\e -> e /= "") $ splitOneOf " ," a
 
 
     -- Map and function didn't impelemented yet
@@ -83,8 +87,7 @@ module Parser where
     tokenize :: [String] -> [String]
     tokenize list = tokenizeCurlyBrackets $ handleListWrapper $ parseString list 
 
-   
-   
+
     parseString :: [String] ->  [String]
     parseString list  = do
         let quotesIndices = "\"" `elemIndices` list
@@ -141,7 +144,8 @@ module Parser where
         let arrayToken = slice (startListIndex + 1) endListIndex list
         -- in (fst $ splitAt startListIndex list  ) ++ [intersperse ' ' $ "[ " ++ (intercalate " " (handleList arrayToken)) ++ " ]"] ++ (tail $ snd $ splitAt endListIndex list)
         in (fst $ splitAt startListIndex list  ) ++ ["[ " ++ (intercalate " " (handleList arrayToken)) ++ " ]"] ++ (tail $ snd $ splitAt endListIndex list)
-
+    
+    -- checking if there is any brackets, if there is it means that there are still some things to parse  
     handleList :: [String] -> [String]
     handleList list = case (any (=="[") list ) of
         True -> 
@@ -156,7 +160,7 @@ module Parser where
     parseList list  =
         let parseListWrapper [] str = [str]
             parseListWrapper ("]":xs) ""  = []
-            parseListWrapper ("]":xs) str  =  ( "[" ++ (init(str)) ++ "]"):xs
+            parseListWrapper ("]":xs) str  =  ( "[ " ++ (init(str)) ++ " ]"):xs
             parseListWrapper ("[":xs) str = (splitOn "," str) ++ parseListWrapper xs ("")  
             parseListWrapper (x:xs) str = parseListWrapper xs (str ++ x ++ ",")
 

@@ -21,10 +21,13 @@ description: Please see the README on GitHub at <https://github.com/yoavweber/bp
 
 dependencies:
   - base >= 4.7 && < 5
-  - mtl
 
 library:
   source-dirs: src
+  dependencies:
+    - containers
+    - mtl
+    - split
 
 executables:
   bprog-exe:
@@ -36,9 +39,6 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - bprog
-      - mtl
-      - split
-      - containers
 
 tests:
   bprog-test:
@@ -51,3 +51,37 @@ tests:
     dependencies:
       - bprog
       - hspec
+      - containers
+      - mtl
+# dependencies:
+#   - base >= 4.7 && < 5
+#   - mtl
+
+# library:
+#   source-dirs: src
+
+# executables:
+#   bprog-exe:
+#     main: Main.hs
+#     source-dirs: app
+#     ghc-options:
+#       - -threaded
+#       - -rtsopts
+#       - -with-rtsopts=-N
+#     dependencies:
+#       - bprog
+#       - mtl
+#       - split
+#       - containers
+
+# tests:
+#   bprog-test:
+#     main: Spec.hs
+#     source-dirs: test
+#     ghc-options:
+#       - -threaded
+#       - -rtsopts
+#       - -with-rtsopts=-N
+#     dependencies:
+#       - bprog
+#       - hspec

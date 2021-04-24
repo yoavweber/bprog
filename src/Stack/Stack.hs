@@ -210,12 +210,13 @@ module Stack.Stack (
 
 
     times :: StackLiteral -> StackElement -> Stack
-    times (StackInt num) expression =
+    times (StackInt num) (Exec expr) =
         let timesWrapper (StackInt 0) _ stack = stack
-            timesWrapper (StackInt num) expression stack = timesWrapper ((StackInt num) - StackInt 1) expression (stack ++ executeCodeLine (unWrap expression) ( (M.empty :: AssignmentMap),([])))
+            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper ((StackInt num) - StackInt 1) (Exec expr) (stack ++ executeCodeLine (expr) ( (M.empty :: AssignmentMap),([])))
         in
-            timesWrapper (StackInt num) expression []
-    times _ expression = []
+            timesWrapper (StackInt num) (Exec expr) []
+    times _ expression = [] -- TODO: error handling
+    times (StackInt num) _ = [] -- TODO: error handling
 
 
 

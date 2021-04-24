@@ -1,4 +1,5 @@
 import Test.Hspec
+import Stack.Stack(executeCode) 
 
 tests :: SpecWith ()
 tests =
@@ -157,7 +158,7 @@ tests =
      \ 4 gen1toNum 5 toList map odd"                            "[True,False,True,False,True]"
 
 t :: String -> String -> SpecWith()
-t i o = it i $ (show executeCode i) `shouldBe` o
+t i o = it i $ (executeCode i) `shouldBe` o
 
 main :: IO()
 main = do

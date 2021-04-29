@@ -121,9 +121,28 @@ module Stack.Stack (
     handleExecution = do
         executionLine <- pop
         let command = unWrap executionLine
-        let res = executeCodeLine command ((M.empty :: AssignmentMap), [])
-        concatState (res)
-        return ()
+    assignVariable :: StackLiteral -> ProgState ()
+    assignVariable (Variable var) = do
+        push $ Literal $ Variable var
+        assignmentMap <- getVarMap 
+        case M.lookup (Variable var) assignmentMap of
+            Nothing -> do
+                -- let t = M.insert var (Variable "undefined element") assignmentMap
+                let t = M.insert (Variable var) ( Literal $ StackString var) assignmentMap
+                updateVar t
+                return ()
+            Just n -> do
+                -- poping the variable and inserting the value of it
+                pop
+                case n of
+                    Exec stack -> do
+                        (varMap,currentStack) <- get
+                        let executedFunc = executeCodeLine (currentStack ++ stack) (varMap, [])
+                        put(varMap,executedFunc)
+                        return ()
+                    Literal s-> do
+                        push n
+                        return ()
 
 
     handleIf :: ProgState ()

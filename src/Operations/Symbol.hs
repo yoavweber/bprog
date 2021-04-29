@@ -61,8 +61,8 @@ module Operations.Symbol where
         --         return ()
 
 
-    assignFunc :: ProgState ()
-    assignFunc = do 
+    assignFunction :: ProgState ()
+    assignFunction = do 
         -- TODO: error, check if there enogh elemets in the stack
         assignmentMap <- getVarMap
         maybeExec <- pop

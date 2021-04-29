@@ -9,9 +9,13 @@ module Operations.Arithmetic where
     handleAritmic :: StackElement -> ProgState ()
     handleAritmic t = case t of
         Arithmetic "+" -> opAdd
+        Arithmetic "div" -> op div'
+        Arithmetic "/" -> op divFrac
         Arithmetic "==" -> opEq
         Arithmetic "*" -> opMult 
         Arithmetic "-" -> opMin
+        Arithmetic "<" -> opBool (<)
+        Arithmetic ">" -> opBool (>)
         -- otherwise ->  put [Arithmetics "1"]
 
     op :: (StackElement   -> StackElement  -> StackElement  ) ->  ProgState ()
@@ -41,6 +45,9 @@ module Operations.Arithmetic where
             push $ Literal (StackBool res)
             return ()
     
+
+    
+    -- TODO: create a gloabl stack function that check if stack is empty
     
     opMult :: ProgState ()
     opMult = do
@@ -64,6 +71,7 @@ module Operations.Arithmetic where
         (ignore,stack) <- get
         case length stack < 2 of 
             True -> do 
+                -- TODO: error, push error instead
                 push (Arithmetic "-")
                 return ()
             False -> do
@@ -90,8 +98,6 @@ module Operations.Arithmetic where
                 return()
             
 
-
-    
     opEq :: ProgState ()
     opEq = do
         a <- popAndEval
@@ -102,6 +108,12 @@ module Operations.Arithmetic where
             otherwise -> push (Literal (StackBool True))
 
 
+    div' :: StackElement -> StackElement -> StackElement 
+    div' (Literal (StackInt a)) 0 = Literal (StackString "can't devide by zero") -- TODO: error, 
+    div' (Literal (StackInt a)) (Literal (StackInt b)) = Literal $ StackInt $ fromInteger $  toInteger b  `div` toInteger  a
+    div' _ _ = Literal (StackString "can't devide by this type") -- TODO: error, 
 
 
-                
+    divFrac :: StackElement -> StackElement -> StackElement 
+    divFrac (Literal (StackInt a)) 0 = Literal (StackString "can't devide by zero")
+    divFrac (Literal (StackFloat a)) (Literal (StackFloat b)) = Literal $ StackFloat $ b / a

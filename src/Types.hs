@@ -23,7 +23,8 @@ module Types where
         | ControlFlow String
         | StackOp  String
         | ListOp String
-        | Exec String
+        | StackIO String
+        | Exec [Ops]
         | Literal StackLiteral
         | Error String
         | AssignmentOp String

@@ -119,7 +119,10 @@ module Parser where
         op <- string "+" <|> string "-" <|> string "*" <|> string "==" <|> string "div" <|> string "/"
         return (Arithmetic op)
 
-
+    parseIO :: Parser Ops
+    parseIO = do
+        op <- string "print" 
+        return (StackIO op)
 
     parseLiteral :: Parser StackLiteral
     parseLiteral =  parseString 
@@ -133,6 +136,7 @@ module Parser where
         endBy parseAll spaces
 
     parseAll = parseIf
+            <|> parseIO
             <|> parseAssignment
             <|> parseArithmetic
             <|> parseStackOp

@@ -113,6 +113,7 @@ module Stack.Stack
         Arithmetic t ->  handleAritmic  (Arithmetic t)
         StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
+        StackIO _ -> handleIO
         AssignmentOp t -> handleVariable t
         ControlFlow t -> handleControlFlow t
         Exec t -> push (Exec t)
@@ -120,6 +121,20 @@ module Stack.Stack
         Literal var -> push (Literal var)
         otherwise -> return ()
         
+
+    handleIO :: ProgState ()
+    handleIO = do
+        printElement <- pop
+        case printElement of
+            -- TODO: handle varibles as well
+            Literal (StackString e) -> do
+                push (StackIO e)
+                return ()
+            _ -> do
+                -- TODO: error, 
+                push (Error "can't print a nonstring element")
+                return ()
+        return ()
 
       -- evaluating the varibles to there actual values  
     -- eval ::  [StackElement] -> AssignmentMap -> [StackElement]

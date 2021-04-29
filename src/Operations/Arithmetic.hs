@@ -14,6 +14,33 @@ module Operations.Arithmetic where
         Arithmetic "-" -> opMin
         -- otherwise ->  put [Arithmetics "1"]
 
+    op :: (StackElement   -> StackElement  -> StackElement  ) ->  ProgState ()
+    op f = do
+        (ignore,stack) <- get
+        if length stack < 2 then do 
+            push (Arithmetic "*")
+            return ()
+        else do 
+            a <- popAndEval
+            b <- popAndEval
+            let res = f a  b
+            push res
+            return ()
+
+
+    opBool :: (StackElement   -> StackElement  -> Bool  ) ->  ProgState ()
+    opBool f = do
+        (ignore,stack) <- get
+        if length stack < 2 then do 
+            push (Arithmetic "*")
+            return ()
+        else do 
+            a <- popAndEval
+            b <- popAndEval
+            let res = f a  b
+            push $ Literal (StackBool res)
+            return ()
+    
     
     opMult :: ProgState ()
     opMult = do

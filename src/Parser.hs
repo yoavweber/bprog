@@ -47,7 +47,7 @@ module Parser where
         first <- many1 digit
         char '.'
         rest <- many1 digit
-        let float = first++('.':rest)
+        let float = first ++ ('.':rest)
         return $ StackFloat (read float :: Float)  
 
 
@@ -74,22 +74,22 @@ module Parser where
         return (List x)
 
 
-    -- -- handleBracketsList :: Parser Ops
-    -- handleBracketsList = endBy parseAll spaces
+    -- handleBracketsList :: Parser Stack
+    handleBracketsList = endBy parseAll spaces
 
 
-    -- parseBracketsList :: Parser [Ops]
-    -- parseBracketsList = do
-    --     char '{' 
-    --     char ' ' 
-    --     x <- try handleBracketsList
-    --     char '}'
-    --     return x
+    parseBracketsList :: Parser Ops  
+    parseBracketsList = do
+        char '{' 
+        char ' ' 
+        x <- try handleBracketsList
+        char '}'
+        return (Exec x)
 
 
     parseIf :: Parser Ops
     parseIf = do 
-        op <- try (string "if" <|> string "map" <|> string "foldl" <|> string "times")
+        op <- try (string "if" <|> string "map" <|> string "foldl" <|> string "times" <|> string "exec")
         return (ControlFlow op)
 
     parseStackOp :: Parser Ops
@@ -105,8 +105,8 @@ module Parser where
 
     parseArithmetic :: Parser Ops
     parseArithmetic = do
-        op <- string "+" <|> string "-" <|> string "*" <|> string "==" 
-        return (StackOp op)
+        op <- string "+" <|> string "-" <|> string "*" <|> string "==" <|> string "div" <|> string "/"
+        return (Arithmetic op)
 
 
 
@@ -115,16 +115,16 @@ module Parser where
                 <|> try parseFloat 
                 <|> parseInt
                 <|> parseList
-                -- <|> parseVarible
+                <|> parseVarible
 
     handleSpace = do
         sepBy parseAll spaces
-        -- parseLiteral
 
     parseAll = parseIf
             <|> parseArithmetic
             <|> parseStackOp
             <|> parseListOp
+            <|> parseBracketsList
             <|> Literal <$> parseLiteral
         
 

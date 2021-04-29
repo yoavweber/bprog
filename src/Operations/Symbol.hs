@@ -8,8 +8,6 @@ module Operations.Symbol where
 
 
     handleVariable :: String -> ProgState ()
-    -- handleVariable t = do
-    --     return ()
     handleVariable t = case t of
         ":=" -> handleAssignment
         -- "func" -> handleFunction
@@ -17,19 +15,19 @@ module Operations.Symbol where
 
 
     assignVariable :: StackLiteral -> ProgState ()
-    assignVariable var = do
-        push $ Literal var
+    assignVariable (Variable var) = do
+        push $ Literal $ Variable var
         assignmentMap <- getVarMap 
-        case (M.lookup (Literal var) assignmentMap) of
+        case M.lookup (Variable var) assignmentMap of
             Nothing -> do
                 -- let t = M.insert var (Variable "undefined element") assignmentMap
-                let t = M.insert (Literal var) (Variable "undefined element") assignmentMap
+                let t = M.insert (Variable var) ( Literal $ StackString var) assignmentMap
                 updateVar t
                 return ()
             Just n -> do
                 -- poping the variable and inserting the value of it
-                -- pop
-                -- push (Literal n)
+                pop
+                push n
                 return ()
 
         
@@ -39,19 +37,50 @@ module Operations.Symbol where
         assignmentMap <- getVarMap
         maybeValue <- pop
         symbol <- pop
-        case checkValue maybeValue of 
-            Nothing -> do
+        case maybeValue of
+            Literal val -> do
+                case symbol of
+                    Literal (Variable var) -> do
+                        let t = M.insert (Variable var) (Literal val) assignmentMap
+                        updateVar  t
+                        return ()
+            _ -> do 
+                push $ Literal (StackString "error: undefined value has been inserted to the stack") -- TODO: , error
+                return ()
+
+        -- case checkValue maybeValue of 
+        --     Nothing -> do
+        --         push $ Literal (StackString "error: undefined value has been inserted to the stack") -- TODO: , error
+        --         -- push maybeValue
+        --         return ()
+        --     Just value -> do
+        --         -- case value of
+        --         -- TODO: if its a litral rise an erro
+        --         let t = M.insert symbol value assignmentMap
+        --         updateVar  t
+        --         return ()
+
+
+    assignFunc :: ProgState ()
+    assignFunc = do 
+        -- TODO: error, check if there enogh elemets in the stack
+        assignmentMap <- getVarMap
+        maybeExec <- pop
+        symbol <- pop
+        case symbol of 
+            Literal (Variable a) -> case maybeExec of
+                Exec exec -> do
+                -- case value of
+                -- TODO: if its a litral rise an erro
+                    let t = M.insert (Variable a) (Exec exec) assignmentMap
+                    updateVar t
+                    return ()
+            _ -> do
                 push $ Literal (StackString "error: undefined value has been inserted to the stack") -- TODO: , error
                 -- push maybeValue
                 return ()
-            Just value -> do
-                -- case value of
-                -- TODO: if its a litral rise an erro
-                let t = M.insert symbol value assignmentMap
-                updateVar  t
-                return ()
 
-    
+
     checkValue :: Ops -> Maybe StackLiteral
     checkValue value = case value of
         Literal val -> Just val

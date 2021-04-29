@@ -37,8 +37,8 @@ module Types where
 
     type ProgState = State (AssignmentMap, Stack)
 
-    type Map = M.Map Ops 
-    type AssignmentMap = Map StackLiteral
+    type Map = M.Map StackLiteral 
+    type AssignmentMap = Map Ops
     type Stack = [StackElement]
     type StackElement = Ops
 

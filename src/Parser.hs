@@ -52,6 +52,11 @@ module Parser where
 
 
 
+    parseBool :: Parser StackLiteral 
+    parseBool = do
+        bool <- try (string "False" <|> string "True")
+        return $ StackBool (read bool :: Bool) 
+
 
     parseInt :: Parser StackLiteral
     parseInt = do
@@ -92,6 +97,12 @@ module Parser where
         op <- try (string "if" <|> string "map" <|> string "foldl" <|> string "times" <|> string "exec")
         return (ControlFlow op)
 
+    parseAssignment :: Parser Ops
+    parseAssignment = do
+        op <- try (string ":=" <|> string "fun" )
+        return (AssignmentOp op)
+    
+
     parseStackOp :: Parser Ops
     parseStackOp = do 
         op <- try (string "pop" <|> string "swap" <|> string "dup")
@@ -112,15 +123,17 @@ module Parser where
 
     parseLiteral :: Parser StackLiteral
     parseLiteral =  parseString 
+                <|> parseBool
                 <|> try parseFloat 
                 <|> parseInt
                 <|> parseList
                 <|> parseVarible
 
     handleSpace = do
-        sepBy parseAll spaces
+        endBy parseAll spaces
 
     parseAll = parseIf
+            <|> parseAssignment
             <|> parseArithmetic
             <|> parseStackOp
             <|> parseListOp
@@ -128,5 +141,5 @@ module Parser where
             <|> Literal <$> parseLiteral
         
 
-    parseStack = parse(handleSpace <* eof) "test"
+    parseStack = parse(handleSpace <* eof) "bprog parse"
     

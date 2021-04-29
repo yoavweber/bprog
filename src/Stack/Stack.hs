@@ -1,11 +1,15 @@
-module Stack.Stack (
-    stackManip,
-    executeCode,
-    executeCodeLine,
-    changeState,
-    unWrap,
-    fold'
- ) where
+module Stack.Stack 
+-- (
+--     stackManip,
+--     executeCode,
+--     executeCodeLine,
+--     changeState,
+--     unWrap,
+--     fold',
+--     parseLine
+
+--  ) where
+    where
     import Control.Monad.State
     import Types
     import qualified Data.Map.Strict as M
@@ -23,33 +27,19 @@ module Stack.Stack (
 
     executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
     executeCode line (varMap,previousStack) = 
-        let stack = previousStack ++ (map (\e -> getTokenType e) $ tokenize (words line))
+        let stack = previousStack ++  parseLine line
         in execState stackManip (varMap,stack) 
 
     stackManip ::  ProgState ()
     stackManip = do
         -- temp stack, just a way to pass the tokens
+        ergonomicManip
+
         (varMap,currentStack) <- get
-        -- FIXME: this is a fix, refactoring is needed
         put (varMap,[])
-        -- let firstEval = (filter (\token -> evalValues token) currentStack )
-        -- handling simple operations that don't require look up
-        -- changeState firstEval
         changeState currentStack
 
 
-        -- this is with all the complex operations
-        -- let sndEval = (filter (\token -> removeOp token) currentStack )
-        -- changeState sndEval
-
-        -- put (varMap,removeTokens)
-        -- changeState newStack
-        (varMap,newStacks) <- get 
-        -- evaluating the stack, and transforming the varilbes to their values
-        -- let evalStack = eval newStack varMap
-
-        -- let evalStack = map (\e -> eval e varMap) newStack
-        -- put (varMap,newStacks)
         return ()
 
 
@@ -59,6 +49,64 @@ module Stack.Stack (
         handleTokens x
         changeState xs
 
+    -- creating a new stack which would containt the "fixed" ergonomic expressions
+    ergonomicManip :: ProgState ()
+    ergonomicManip = do
+        (varMap,currentStack) <- get
+        put (varMap,[])
+        loopErgonomic currentStack
+        return () 
+
+
+    loopErgonomic :: Stack -> ProgState ()
+    loopErgonomic [] = return ()
+    loopErgonomic (x:xs) = do
+        handleErgonomic x
+        loopErgonomic xs
+
+    -- checking if the element is of ControlFlow type, if it is handling with it
+    handleErgonomic :: StackElement  -> ProgState ()
+    handleErgonomic e = do
+        case e of
+            ControlFlow "if" -> do
+                ergonomicExpr True
+                push $ ControlFlow "if"
+                return ()
+            ControlFlow controlFlow -> do
+                ergonomicExpr False
+                push $ ControlFlow controlFlow
+                return()
+            _ -> do
+                push e
+                return ()
+
+
+    -- Removing the argument and replacing it with an expression
+    ergonomicExpr :: Bool -> ProgState()
+    ergonomicExpr isIf = do
+        if isIf
+            then do
+                exper1 <- wrapExpr
+                exper2 <- wrapExpr
+                push exper2
+                push exper1
+                return ()
+            else do
+                exper <- wrapExpr
+                push exper
+                return ()
+                
+    -- check if the control flow recived expresions
+    -- if it has not, turn them into expressions
+    wrapExpr = do
+        -- TODO: error, check stack size
+        maybeExpr <- pop
+        case maybeExpr of
+            Exec _ -> do
+                return maybeExpr
+            _ -> do
+                -- push $ Exec [maybeExper2]
+                return $ Exec [maybeExpr]
 
     handleTokens :: StackElement -> ProgState ()
     handleTokens t = case t of
@@ -74,28 +122,51 @@ module Stack.Stack (
         
 
       -- evaluating the varibles to there actual values  
-    eval ::  [StackElement] -> AssignmentMap -> [StackElement]
-    eval [] _ = []
-    eval (maybeVar:stack) assignmentMap = case maybeVar of
-        Literal (Variable var) -> case M.lookup (Literal (Variable var)) assignmentMap of
-            Nothing ->  (Literal $ StackString "Error"):(eval stack assignmentMap)
-            Just n -> Literal n:(eval stack assignmentMap)
-        -- ControlFlow "if" -> case length stack < 2 of
-        --     False -> do 
-        --         execTrue:execFalse:stack
-        --         (handleIf' execTrue execFalse):(eval stack assignmentMap)
-            -- True -> do TODO: error, send error and stop the program
+    -- eval ::  [StackElement] -> AssignmentMap -> [StackElement]
+    -- eval [] _ = []
+    -- eval (maybeVar:stack) assignmentMap = case maybeVar of
+    --     Literal (Variable var) -> case M.lookup (Literal (Variable var)) assignmentMap of
+    --         Nothing ->  (Literal $ StackString "Error") : (eval stack assignmentMap)
+    --         Just n -> Literal n:(eval stack assignmentMap)
+    --     Literal (List var) ->  eval (map (\e -> Literal e) var) assignmentMap ++
+           
+    --     -- ControlFlow "if" -> case length stack < 2 of
+    --     --     False -> do 
+    --     --         execTrue:execFalse:stack
+    --     --         (handleIf' execTrue execFalse):(eval stack assignmentMap)
+    --         -- True -> do TODO: error, send error and stop the program
 
-        otherwise -> maybeVar:(eval stack assignmentMap)
+    --     otherwise -> maybeVar:(eval stack assignmentMap)
+    -- TODO: fix the issue with the order and with the list
+    -- eval ::  StackLiteral -> AssignmentMap -> StackLiteral
+    -- eval element assignmentMap =  case element of
+    --     List list -> List $ map (\e -> StackBool True ) list 
+    --     Variable e -> case M.lookup (Literal $ Variable e) assignmentMap of
+    --         Nothing ->  StackString "Error"
+    --         -- Just (Exec exec) -> (Exec exec)
+    --         Just n -> n
+    --     _ -> element
 
+    -- evalStack :: Stack -> AssignmentMap -> Stack 
+    -- evalStack [] _ = []
+    -- evalStack (maybeVar:stack) assignmentMap = case maybeVar of
+    --     Literal lit ->  (stack ++ [Literal $ eval lit assignmentMap]) 
+    --     _  -> maybeVar:stack
+           
 
 -- ---------------------- Control flow --------------------------------
-    executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack
-    executeCodeLine line (varMap,previousStack) = 
-        let stack =  previousStack ++ (map (\e -> getTokenType e) $ tokenize (words line))  
-        in snd (execState stackManip (varMap, stack))
+    -- executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack
+    -- executeCodeLine line (varMap,previousStack) = 
+    --     let stack =  previousStack ++ (parseLine line)
+    --     in snd (execState stackManip (varMap, stack))
+    -- TODO: change it to executeParsedCode
+    executeCodeLine :: Stack -> (AssignmentMap, Stack) -> Stack
+    executeCodeLine stack (varMap,previousStack) = 
+        let newStack =  previousStack ++ stack
+        in snd (execState stackManip (varMap, newStack))
 
-    unWrap :: Ops -> String
+    -- unwrap exec
+    unWrap :: Ops -> Stack
     unWrap a = case a of
         -- Literal t -> t 
         Exec t -> t
@@ -121,6 +192,11 @@ module Stack.Stack (
     handleExecution = do
         executionLine <- pop
         let command = unWrap executionLine
+        let res = executeCodeLine command (M.empty :: AssignmentMap, [])
+        concatState res
+        return ()
+
+
     assignVariable :: StackLiteral -> ProgState ()
     assignVariable (Variable var) = do
         push $ Literal $ Variable var
@@ -164,6 +240,7 @@ module Stack.Stack (
                         stackManip
                         return ()
                     otherwise -> do
+                        push condition
                         push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
                         return ()
             False -> do 
@@ -205,14 +282,14 @@ module Stack.Stack (
         case list of
             Literal (List listLiteral) -> do 
                 let res = fold' listLiteral op [acc]
-                push $ (head res)
+                push $ head res
                 return ()
 
 
     fold' :: [StackLiteral] -> Ops -> Stack -> Stack
     fold' [] _ stack = stack 
     fold' (x:xs) op stack = 
-        let foldStack = executeCodeLine (unWrap op) ( (M.empty :: AssignmentMap),(stack ++ [Literal x]) )
+        let foldStack = executeCodeLine (unWrap op) ( M.empty :: AssignmentMap,stack ++ [Literal x] )
         in fold' xs op foldStack
         
 
@@ -231,13 +308,11 @@ module Stack.Stack (
     times :: StackLiteral -> StackElement -> Stack
     times (StackInt num) (Exec expr) =
         let timesWrapper (StackInt 0) _ stack = stack
-            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper ((StackInt num) - StackInt 1) (Exec expr) (stack ++ executeCodeLine (expr) ( (M.empty :: AssignmentMap),([])))
+            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper ((StackInt num) - StackInt 1) (Exec expr) (stack ++ executeCodeLine expr ( (M.empty :: AssignmentMap),([])))
         in
             timesWrapper (StackInt num) (Exec expr) []
     times _ expression = [] -- TODO: error handling
     times (StackInt num) _ = [] -- TODO: error handling
-
-
 
     -- should added to all operators that don't requrire back lookup?
     -- evalValues :: StackElement -> Bool

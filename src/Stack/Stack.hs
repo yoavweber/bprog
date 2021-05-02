@@ -38,7 +38,9 @@ module Stack.Stack
         (varMap,currentStack) <- get
         put (varMap,[])
         changeState currentStack
-
+        (varMap,unevelStack) <- get
+        let newStack = evalStack unevelStack varMap
+        put (varMap,newStack)
 
         return ()
 
@@ -153,21 +155,36 @@ module Stack.Stack
 
     --     otherwise -> maybeVar:(eval stack assignmentMap)
     -- TODO: fix the issue with the order and with the list
-    -- eval ::  StackLiteral -> AssignmentMap -> StackLiteral
-    -- eval element assignmentMap =  case element of
-    --     List list -> List $ map (\e -> StackBool True ) list 
-    --     Variable e -> case M.lookup (Literal $ Variable e) assignmentMap of
-    --         Nothing ->  StackString "Error"
-    --         -- Just (Exec exec) -> (Exec exec)
-    --         Just n -> n
-    --     _ -> element
+    evalStack :: Stack -> AssignmentMap -> Stack 
+    evalStack [] _ = []
+    evalStack (maybeVar:stack) assignmentMap = case maybeVar of
+        -- Literal $ (Variable var) -> 
+        Literal maybeVar -> eval maybeVar assignmentMap : evalStack stack assignmentMap
+        -- StackIO -> 
+        _  -> evalStack stack assignmentMap
 
-    -- evalStack :: Stack -> AssignmentMap -> Stack 
-    -- evalStack [] _ = []
-    -- evalStack (maybeVar:stack) assignmentMap = case maybeVar of
-    --     Literal lit ->  (stack ++ [Literal $ eval lit assignmentMap]) 
-    --     _  -> maybeVar:stack
-           
+    eval ::  StackLiteral -> AssignmentMap -> StackElement 
+    eval element assignmentMap =  case element of
+        List list -> Literal $ loopLiteralList list  assignmentMap
+        Variable e -> getVarValue (Variable e) assignmentMap
+        _ -> Literal element
+
+
+    -- chacking if the varible has a value or a function, if it is a function send an error     
+    loopLiteralList :: [StackLiteral] -> AssignmentMap  -> StackLiteral
+    loopLiteralList list assignmentMap = List $ map (\e -> case e of { List nestedList -> loopLiteralList nestedList assignmentMap; Variable _ -> handleValueInList $ getVarValue e assignmentMap; _ -> e}) list
+   
+    getVarValue :: StackLiteral -> AssignmentMap  -> StackElement   
+    getVarValue e assignmentMap = case M.lookup e assignmentMap of
+        Nothing -> Error "Internal error, could not find variable"
+        Just var -> var
+
+
+    handleValueInList  :: StackElement  -> StackLiteral 
+    handleValueInList e = case e of
+        Exec _ -> StackString "Can't write a function to a list" -- TODO: if this token there, delete the list
+        Literal var -> var 
+        _ ->  StackString "Where does it failing?"
 
 -- ---------------------- Control flow --------------------------------
     -- executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack

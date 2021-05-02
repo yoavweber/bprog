@@ -10,25 +10,9 @@ module Operations.Symbol where
     handleVariable :: String -> ProgState ()
     handleVariable t = case t of
         ":=" -> handleAssignment
-        -- "func" -> handleFunction
+        "fun" -> assignFunction
 
 
-
-    assignVariable :: StackLiteral -> ProgState ()
-    assignVariable (Variable var) = do
-        push $ Literal $ Variable var
-        assignmentMap <- getVarMap 
-        case M.lookup (Variable var) assignmentMap of
-            Nothing -> do
-                -- let t = M.insert var (Variable "undefined element") assignmentMap
-                let t = M.insert (Variable var) ( Literal $ StackString var) assignmentMap
-                updateVar t
-                return ()
-            Just n -> do
-                -- poping the variable and inserting the value of it
-                pop
-                push n
-                return ()
 
         
 
@@ -77,7 +61,6 @@ module Operations.Symbol where
                     return ()
             _ -> do
                 push $ Literal (StackString "error: undefined value has been inserted to the stack") -- TODO: , error
-                -- push maybeValue
                 return ()
 
 

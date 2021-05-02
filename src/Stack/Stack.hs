@@ -26,9 +26,9 @@ module Stack.Stack
 
 
     executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
-    executeCode line (varMap,previousStack) = 
+    executeCode line (varMap,previousStack) =
         let stack = previousStack ++  parseLine line
-        in execState stackManip (varMap,stack) 
+        in execState stackManip (varMap,stack)
 
     stackManip ::  ProgState ()
     stackManip = do
@@ -46,7 +46,7 @@ module Stack.Stack
 
 
     changeState :: Stack -> ProgState ()
-    changeState [] = return () 
+    changeState [] = return ()
     changeState (x:xs) = do
         handleTokens x
         changeState xs
@@ -57,7 +57,7 @@ module Stack.Stack
         (varMap,currentStack) <- get
         put (varMap,[])
         loopErgonomic currentStack
-        return () 
+        return ()
 
 
     loopErgonomic :: Stack -> ProgState ()
@@ -121,8 +121,8 @@ module Stack.Stack
         Exec t -> push (Exec t)
         Literal (Variable var) -> assignVariable (Variable var)
         Literal var -> push (Literal var)
-        otherwise -> return ()
-        
+        _ -> return ()
+
 
     handleIO :: ProgState ()
     handleIO = do
@@ -138,23 +138,8 @@ module Stack.Stack
                 return ()
         return ()
 
-      -- evaluating the varibles to there actual values  
-    -- eval ::  [StackElement] -> AssignmentMap -> [StackElement]
-    -- eval [] _ = []
-    -- eval (maybeVar:stack) assignmentMap = case maybeVar of
-    --     Literal (Variable var) -> case M.lookup (Literal (Variable var)) assignmentMap of
-    --         Nothing ->  (Literal $ StackString "Error") : (eval stack assignmentMap)
-    --         Just n -> Literal n:(eval stack assignmentMap)
-    --     Literal (List var) ->  eval (map (\e -> Literal e) var) assignmentMap ++
-           
-    --     -- ControlFlow "if" -> case length stack < 2 of
-    --     --     False -> do 
-    --     --         execTrue:execFalse:stack
-    --     --         (handleIf' execTrue execFalse):(eval stack assignmentMap)
-    --         -- True -> do TODO: error, send error and stop the program
 
-    --     otherwise -> maybeVar:(eval stack assignmentMap)
-    -- TODO: fix the issue with the order and with the list
+
     evalStack :: Stack -> AssignmentMap -> Stack 
     evalStack [] _ = []
     evalStack (maybeVar:stack) assignmentMap = case maybeVar of
@@ -187,13 +172,8 @@ module Stack.Stack
         _ ->  StackString "Where does it failing?"
 
 -- ---------------------- Control flow --------------------------------
-    -- executeCodeLine :: String -> (AssignmentMap, Stack) -> Stack
-    -- executeCodeLine line (varMap,previousStack) = 
-    --     let stack =  previousStack ++ (parseLine line)
-    --     in snd (execState stackManip (varMap, stack))
-    -- TODO: change it to executeParsedCode
-    executeCodeLine :: Stack -> (AssignmentMap, Stack) -> Stack
-    executeCodeLine stack (varMap,previousStack) = 
+    executeParsedCode :: Stack -> (AssignmentMap, Stack) -> Stack
+    executeParsedCode stack (varMap,previousStack) =
         let newStack =  previousStack ++ stack
         in snd (execState stackManip (varMap, newStack))
 
@@ -206,25 +186,23 @@ module Stack.Stack
 
     unWrapStackLiteral :: StackElement -> StackLiteral
     unWrapStackLiteral a = case a of
-        Literal t -> t 
-        -- Exec t -> t
-        -- otherwise ->
+        Literal t -> t
 
     handleControlFlow :: String -> ProgState ()
     handleControlFlow t = case t of
-        "exec" -> handleExecution 
+        "exec" -> handleExecution
         "if" -> handleIf
         "map" -> handleMap
         "foldl" -> handleFold
         "times" -> handleTimes
-    
+
 
 
     handleExecution :: ProgState ()
     handleExecution = do
         executionLine <- pop
         let command = unWrap executionLine
-        let res = executeCodeLine command (M.empty :: AssignmentMap, [])
+        let res = executeParsedCode command (M.empty :: AssignmentMap, [])
         concatState res
         return ()
 
@@ -232,7 +210,7 @@ module Stack.Stack
     assignVariable :: StackLiteral -> ProgState ()
     assignVariable (Variable var) = do
         push $ Literal $ Variable var
-        assignmentMap <- getVarMap 
+        assignmentMap <- getVarMap
         case M.lookup (Variable var) assignmentMap of
             Nothing -> do
                 -- let t = M.insert var (Variable "undefined element") assignmentMap
@@ -245,7 +223,7 @@ module Stack.Stack
                 case n of
                     Exec stack -> do
                         (varMap,currentStack) <- get
-                        let executedFunc = executeCodeLine (currentStack ++ stack) (varMap, [])
+                        let executedFunc = executeParsedCode (currentStack ++ stack) (varMap, [])
                         put(varMap,executedFunc)
                         return ()
                     Literal s-> do
@@ -256,37 +234,37 @@ module Stack.Stack
     handleIf :: ProgState ()
     handleIf = do
         (_,currentStack) <- get
-        case (length currentStack) >= 3 of
-            True -> do
-                falseExec <- pop
-                trueExec <- pop
-                condition <- pop
-            -- TODO: error, if there are no two execution provide an error
-                case condition of
-                    Literal (StackBool True)  -> do
-                        concatState (executeCodeLine (unWrap trueExec) ((M.empty :: AssignmentMap), []))
-                        stackManip
+        if length currentStack >= 3 
+            then (do
+            falseExec <- pop
+            trueExec <- pop
+            condition <- pop
+        -- TODO: error, if there are no two execution provide an error
+            case condition of
+                Literal (StackBool True)  -> do
+                    concatState (executeParsedCode (unWrap trueExec) (M.empty :: AssignmentMap, []))
+                    stackManip
+                    return ()
+                Literal (StackBool False) -> do
+                    concatState (executeParsedCode (unWrap falseExec) ((M.empty :: AssignmentMap), []))
+                    stackManip
+                    return ()
+                _ -> do
+                    push condition
+                    push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
+                    return ()) else do
+
+            -- put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
+                        push (ControlFlow "if")
                         return ()
-                    Literal (StackBool False) -> do
-                        concatState (executeCodeLine (unWrap falseExec) ((M.empty :: AssignmentMap), []))
-                        stackManip
-                        return ()
-                    otherwise -> do
-                        push condition
-                        push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
-                        return ()
-            False -> do 
-                -- put ((M.empty :: AssignmentMap),[Literal (StackString $ "if input error, not enough arguments: " ++ (show $ length currentStack) )]) -- handle error with proper if statment
-                push (ControlFlow "if")
-                return ()
 
     handleEach ::  ProgState ()
     handleEach = do
         experssion <- pop
         list <- pop
         case list of
-            Literal (List x) -> do 
-                let stackElements = map (\e ->  head $ executeCodeLine (unWrap experssion) ( (M.empty :: AssignmentMap),([Literal e]) ) )  x
+            Literal (List x) -> do
+                let stackElements = map (\e ->  head $ executeParsedCode (unWrap experssion) ( M.empty :: AssignmentMap,[Literal e] ) )  x
                 concatState stackElements
         -- currentStack <- get
                 return ()
@@ -297,14 +275,14 @@ module Stack.Stack
         experssion <- pop
         list <- pop
         case list of
-            Literal (List x) -> do 
-                let literalList = map (\e -> unWrapStackLiteral ( head $ executeCodeLine (unWrap experssion) ( (M.empty :: AssignmentMap),([Literal e]) ) ))  x
+            Literal (List x) -> do
+                let literalList = map (\e -> unWrapStackLiteral ( head $ executeParsedCode (unWrap experssion) ( M.empty :: AssignmentMap,[Literal e] ) ))  x
                 push $ Literal $ List literalList
                 -- concatState t
         -- currentStack <- get
                 return ()
 
-        
+
     handleFold ::  ProgState ()
     handleFold = do
         op <- pop
@@ -312,18 +290,18 @@ module Stack.Stack
         list <- pop
         -- TODO: error, handle different error cases
         case list of
-            Literal (List listLiteral) -> do 
+            Literal (List listLiteral) -> do
                 let res = fold' listLiteral op [acc]
                 push $ head res
                 return ()
 
 
     fold' :: [StackLiteral] -> Ops -> Stack -> Stack
-    fold' [] _ stack = stack 
-    fold' (x:xs) op stack = 
-        let foldStack = executeCodeLine (unWrap op) ( M.empty :: AssignmentMap,stack ++ [Literal x] )
+    fold' [] _ stack = stack
+    fold' (x:xs) op stack =
+        let foldStack = executeParsedCode (unWrap op) ( M.empty :: AssignmentMap,stack ++ [Literal x] )
         in fold' xs op foldStack
-        
+
 
     handleTimes :: ProgState()
     handleTimes = do
@@ -340,7 +318,7 @@ module Stack.Stack
     times :: StackLiteral -> StackElement -> Stack
     times (StackInt num) (Exec expr) =
         let timesWrapper (StackInt 0) _ stack = stack
-            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper ((StackInt num) - StackInt 1) (Exec expr) (stack ++ executeCodeLine expr ( (M.empty :: AssignmentMap),([])))
+            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper (StackInt num - StackInt 1) (Exec expr) (stack ++ executeParsedCode expr ( M.empty :: AssignmentMap,[]))
         in
             timesWrapper (StackInt num) (Exec expr) []
     times _ expression = [] -- TODO: error handling

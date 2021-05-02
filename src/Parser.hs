@@ -57,11 +57,44 @@ module Parser where
         bool <- try (string "False" <|> string "True")
         return $ StackBool (read bool :: Bool) 
 
+    
+    pPos :: Parser Integer
+    pPos = do 
+        s <- many1 digit 
+        return $ read s
+
+    -- Parse negative number 
+    pNeg :: Parser Integer
+    pNeg = do
+        char '-'
+        n <- pPos
+        return (-n)
+
 
     parseInt :: Parser StackLiteral
     parseInt = do
+        n <- try pPos <|> pNeg
+        return $  StackInt n  
+
+    pNegFloat :: Parser Float 
+    pNegFloat = do
+        char '-'
+        n <- pFloat
+        return (-n)
+
+
+    pFloat :: Parser Float
+    pFloat = do 
         first <- many1 digit
-        return $  StackInt (read first :: Int)  
+        char '.'
+        rest <- many1 digit
+        let float = first ++ ('.':rest)
+        return (read float :: Float)
+
+    parseFloat :: Parser StackLiteral
+    parseFloat = do
+        n <- pFloat <|> pNegFloat
+        return $ StackFloat n
 
     parseNumber :: Parser Ops
     parseNumber = liftM (Literal . StackInt . read) $ many1 digit

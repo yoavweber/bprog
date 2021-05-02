@@ -113,6 +113,30 @@ module Parser where
         op <- try (string "head" <|> string "tail" <|> string "empty" <|> string "length" <|> string "cons" <|> string "append")
         return (ListOp op)
 
+    stringParsing :: Parser Ops
+    stringParsing =  parseStringFloat <|> parseStringInt <|> parseWords
+       
+
+        -- TODO: change aritmic type
+        -- return $ Arithmetic op
+    parseWords :: Parser Ops
+    parseWords = do
+        op <- try (string "words" )
+        -- TODO: change aritmic type
+        return $ Arithmetic op
+
+
+    parseStringFloat :: Parser Ops
+    parseStringFloat = do
+        op <- try (string "parseFloat" )
+        -- TODO: change aritmic type
+        return $ Arithmetic op
+
+    parseStringInt :: Parser Ops
+    parseStringInt = do
+        op <- try (string "parseInteger" <|> string "words")
+        -- TODO: change aritmic type
+        return $ Arithmetic op
 
     parseArithmetic :: Parser Ops
     parseArithmetic = do
@@ -136,6 +160,7 @@ module Parser where
         endBy parseAll spaces
 
     parseAll = parseIf
+            <|> stringParsing
             <|> parseIO
             <|> parseAssignment
             <|> parseArithmetic

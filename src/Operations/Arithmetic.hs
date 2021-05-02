@@ -4,6 +4,7 @@ module Operations.Arithmetic where
 
     import Stack.StateOps(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push)
     import Types
+    import Text.Read(readMaybe)
 
     -- TODO: try to create a generic function which getting as an input the operation
     handleAritmic :: StackElement -> ProgState ()
@@ -16,6 +17,9 @@ module Operations.Arithmetic where
         Arithmetic "-" -> opMin
         Arithmetic "<" -> opBool (<)
         Arithmetic ">" -> opBool (>)
+        Arithmetic "parseFloat" -> parseFloat
+        Arithmetic "parseInteger" -> parseInt
+        Arithmetic "words" -> stackWords
         -- otherwise ->  put [Arithmetics "1"]
 
     op :: (StackElement   -> StackElement  -> StackElement  ) ->  ProgState ()
@@ -30,6 +34,49 @@ module Operations.Arithmetic where
             let res = f a  b
             push res
             return ()
+
+    parseFloat :: ProgState ()
+    parseFloat = do
+        maybeFloat <- pop
+        case maybeFloat of
+            Literal (StackString float) -> do
+                case readMaybe float :: Maybe Float of
+                    Just n -> do
+                        push $ Literal (StackFloat  n)
+                        return ()
+                    Nothing -> do
+                        push $ Error "Could not parse float"
+                        return ()
+            _ -> do 
+                push $ Error "parseFloat can only be used on strings"
+                return ()
+
+    parseInt :: ProgState ()
+    parseInt = do
+        maybeInt <- pop
+        case maybeInt of
+            Literal (StackString int) -> do
+                case (readMaybe int :: Maybe Integer) of
+                    Just n -> do
+                        push $ Literal (StackInt  n)
+                        return ()
+                    Nothing -> do
+                        push $ Error "Could not parse Int"
+                        return ()
+            _ -> do 
+                push $ Error "parseInt can only be used on strings"
+                return ()
+                
+    stackWords :: ProgState ()
+    stackWords = do
+        maybeString <- pop
+        case maybeString of
+            Literal (StackString str) -> do
+                push $ Literal (List $ map StackString (words str))  
+                return ()
+            _ -> do
+                push maybeString
+                push $ Error  "could not use function words on non-string type"
 
 
     opBool :: (StackElement   -> StackElement  -> Bool  ) ->  ProgState ()

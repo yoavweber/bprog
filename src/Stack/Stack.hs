@@ -192,9 +192,11 @@ module Stack.Stack
     handleControlFlow t = case t of
         "exec" -> handleExecution
         "if" -> handleIf
+        "loop" -> handleLoop
         "map" -> handleMap
         "foldl" -> handleFold
         "times" -> handleTimes
+        "each" -> handleEach
 
 
 
@@ -258,6 +260,31 @@ module Stack.Stack
                         push (ControlFlow "if")
                         return ()
 
+    handleLoop :: ProgState ()
+    handleLoop = do
+        preformOp <- checkStackLength (ControlFlow "loop") 2 
+        if preformOp
+            then do
+                loopBody <- pop
+                loopCondition <- pop
+                loop' loopBody loopCondition 
+            else do
+                return ()
+    
+    
+    loop' :: StackElement -> StackElement -> ProgState ()
+    loop' loopBody loopCondition = do
+        (varMap,currentStack) <- get 
+        let loop = executeParsedCode (unWrap loopCondition) (varMap,currentStack)
+        if last loop == Literal (StackBool False)
+            then do 
+                let res = executeParsedCode (unWrap loopBody) (varMap,currentStack)
+                put(varMap, res )
+                loop' loopBody loopCondition
+                else do
+
+                    return ()
+        
     handleEach ::  ProgState ()
     handleEach = do
         experssion <- pop
@@ -310,7 +337,7 @@ module Stack.Stack
         case time of
             Literal num -> do
                 let res = times num expression
-                concatState res
+                updateStack res
                 return ()
 
 
@@ -324,6 +351,11 @@ module Stack.Stack
     times _ expression = [] -- TODO: error handling
     times (StackInt num) _ = [] -- TODO: error handling
 
+    updateStack :: Stack -> ProgState ()
+    updateStack res = do
+        (varMap,stack) <- get
+        let evalTimes = executeParsedCode res (varMap,stack)
+        put(varMap,evalTimes)
     -- should added to all operators that don't requrire back lookup?
     -- evalValues :: StackElement -> Bool
     -- evalValues token = case token of

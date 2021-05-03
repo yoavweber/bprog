@@ -72,7 +72,7 @@ module Operations.Arithmetic where
         maybeString <- pop
         case maybeString of
             Literal (StackString str) -> do
-                push $ Literal (List $ map StackString (words str))  
+                push $ Literal (List $ map (Literal . StackString) (words str))  
                 return ()
             _ -> do
                 push maybeString

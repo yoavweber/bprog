@@ -9,13 +9,12 @@ module Types where
     --     | Func Ops-- this can only be exec
 
     data StackLiteral 
-         = StackInt    Int
+         = StackInt    Integer
         | StackString String
         | StackFloat   Float
         | StackBool   Bool
         | Variable   String
-        | List    [StackLiteral]
-        deriving(Show,Ord)
+        | List    [Ops]
 
     data Ops
         = Arithmetic String

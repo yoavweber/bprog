@@ -16,6 +16,9 @@ module Parser where
     -- slice :: Int -> Int -> [a] -> [a]
     -- slice start stop xs = fst $ splitAt (stop - start) (snd $ splitAt start xs)
 
+    trim :: [Char] -> [Char]
+    trim = dropWhileEnd isSpace . dropWhile isSpace
+
     symbol :: Parser Char
     symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
@@ -50,12 +53,12 @@ module Parser where
         let float = first ++ ('.':rest)
         return $ StackFloat (read float :: Float)  
 
-
-
-    parseBool :: Parser StackLiteral 
-    parseBool = do
-        bool <- try (string "False" <|> string "True")
-        return $ StackBool (read bool :: Bool) 
+    parseString :: Parser StackLiteral
+    parseString = do
+        char '"'
+        x <- many (noneOf "\"")
+        char '"'
+        return $ StackString (trim x)
 
     
     pPos :: Parser Integer
@@ -127,7 +130,11 @@ module Parser where
 
     parseIf :: Parser Ops
     parseIf = do 
-        op <- try (string "if" <|> string "map" <|> string "foldl" <|> string "times" <|> string "exec")
+        op <- try (string "if" <|>  string "exec" <|> string "loop")
+        return (ControlFlow op)
+
+    parseListOps = do
+        op <- try (string "map" <|> string "foldl" <|> string "times" <|> string "each" )
         return (ControlFlow op)
 
     parseAssignment :: Parser Ops

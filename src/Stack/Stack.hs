@@ -1,16 +1,7 @@
 module Stack.Stack
--- (
---     stackManip,
---     executeCode,
---     executeCodeLine,
---     changeState,
---     unWrap,
---     fold',
---     parseLine
-
---  ) where
     where
     import Control.Monad.State
+    import Control.Monad
     import Types
     import qualified Data.Map.Strict as M
 
@@ -23,7 +14,7 @@ module Stack.Stack
     import Parser
 
 
-
+    -- Executing the state operation on the stack
     executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
     executeCode line (varMap,previousStack) =
         let stack = previousStack ++  parseLine line
@@ -31,26 +22,21 @@ module Stack.Stack
 
     stackManip ::  ProgState ()
     stackManip = do
-        -- temp stack, just a way to pass the tokens
         ergonomicManip
-
         (varMap,currentStack) <- get
-        put (varMap,[])
-        changeState currentStack
-        (varMap,unevelStack) <- get
-        let newStack = evalStack unevelStack varMap
-        put (varMap,[])
-        changeState newStack
+        case last currentStack of
+            Error err -> do
+                return ()
+            _ -> do
+                put (varMap,[])
+                changeState currentStack
+                (varMap,unevelStack) <- get
+                let newStack = evalStack unevelStack varMap
+                put (varMap,[])
+                changeState newStack
+                return ()
 
-        return ()
-
-
-    changeState :: Stack -> ProgState ()
-    changeState [] = return ()
-    changeState (x:xs) = do
-        handleTokens x
-        changeState xs
-
+-- ------------------------------------ ergonomic expressions -----------------------------
     -- creating a new stack which would containt the "fixed" ergonomic expressions
     ergonomicManip :: ProgState ()
     ergonomicManip = do
@@ -71,21 +57,28 @@ module Stack.Stack
     handleErgonomic e =
         case e of
             ControlFlow "if" -> do
-                ergonomicExpr True
-                push $ ControlFlow "if"
+                preformOp <- checkStackLength (ControlFlow "if") 2
+                Control.Monad.when preformOp $ do
+                    ergonomicExpr True
+                    push $ ControlFlow "if"
+                    return ()
+            ControlFlow "exec" -> do
+                push $ ControlFlow "exec"
                 return ()
             ControlFlow controlFlow -> do
-                ergonomicExpr False
-                push $ ControlFlow controlFlow
-                return()
+                preformOp <- checkStackLength (ControlFlow controlFlow) 1
+                Control.Monad.when preformOp $ do
+                    ergonomicExpr False 
+                    push $ ControlFlow controlFlow
+                    return ()
             _ -> do
                 push e
                 return ()
 
 
     -- Removing the argument and replacing it with an expression
-    ergonomicExpr :: Bool -> ProgState()
-    ergonomicExpr isIf =
+    ergonomicExpr :: Bool  -> ProgState()
+    ergonomicExpr isIf  =
         if isIf
             then do
                 exper1 <- wrapExpr
@@ -101,7 +94,6 @@ module Stack.Stack
     -- check if the control flow recived expresions
     -- if it has not, turn them into expressions
     wrapExpr = do
-        -- TODO: error, check stack size
         maybeExpr <- pop
         case maybeExpr of
             Exec _ ->
@@ -109,6 +101,15 @@ module Stack.Stack
             _ ->
                 return $ Exec [maybeExpr]
 
+    ------------- ------ evaluating stack ------------------------------------
+       -- Looping over each element in the stack evaluating it
+    changeState :: Stack -> ProgState ()
+    changeState [] = return ()
+    changeState (x:xs) = do
+        handleTokens x
+        changeState xs
+
+    -- sedning each token to the function that handle his type
     handleTokens :: StackElement -> ProgState ()
     handleTokens t = case t of
         Arithmetic t ->  handleAritmic  (Arithmetic t)
@@ -123,23 +124,23 @@ module Stack.Stack
         Error error -> push (Error error)
         _ -> return ()
 
-
+    -- checking if the object is printble, if it is push it to stack and if not send an error
     handleIO :: ProgState ()
     handleIO = do
-        printElement <- pop
-        case printElement of
-            -- TODO: handle varibles as well
-            Literal (StackString e) -> do
-                push (StackIO e)
-                return ()
-            _ -> do
-                -- TODO: error, 
-                push (Error "can't print a nonstring element")
-                return ()
-        return ()
+        preformOp <- checkStackLength (StackIO "print") 1
+        Control.Monad.when preformOp $ do
+            printElement <- pop
+            varMap <- getVarMap
+            push $ print' printElement varMap 
+            return ()
+    
+    print' :: StackElement -> AssignmentMap  -> StackElement 
+    print' (Literal (StackString e)) _ = StackIO e
+    print' (Literal (Variable e)) varMap =  print' ( getVarValue (Literal (Variable e)) varMap) varMap
+    print' _ _ = Error "can't print a nonstring element"
 
-
-
+    ---------------------- evaluate varible -----------------
+    -- loop over the stack and search for varibles, if there are evaluate them
     evalStack :: Stack -> AssignmentMap -> Stack
     evalStack [] _ = []
     evalStack (maybeVar:stack) assignmentMap = case maybeVar of
@@ -167,29 +168,25 @@ module Stack.Stack
         Just var -> var
 
 
-    --checking if the stored variable is a literal, if its not return an error
-    handleValueInList  :: StackElement  -> StackLiteral
-    handleValueInList e = case e of
-        Exec _ -> StackString "Can't write a function to a list" -- TODO: if this token there, delete the list
-        Literal var -> var
-        _ ->  StackString "Where does it failing?"
-
 -- ---------------------- Control flow --------------------------------
+    --  same as executeCode function, only exept an actuall stack type and not a string
     executeParsedCode :: Stack -> (AssignmentMap, Stack) -> Stack
     executeParsedCode stack (varMap,previousStack) =
         let newStack =  previousStack ++ stack
         in snd (execState stackManip (varMap, newStack))
 
-    -- unwrap exec
+      -- adding result to the stack
+    updateStack :: Stack -> ProgState ()
+    updateStack res = do
+        (varMap,stack) <- get
+        let evalTimes = executeParsedCode res (varMap,stack)
+        put(varMap,evalTimes)
+
+    -- unwrap exec type to get its value
     unWrap :: Ops -> Stack
     unWrap a = case a of
-        -- Literal t -> t 
         Exec t -> t
-        -- otherwise ->
-
-    unWrapStackLiteral :: StackElement -> StackLiteral
-    unWrapStackLiteral a = case a of
-        Literal t -> t
+        _ -> [Error "expected execution type"]
 
     handleControlFlow :: String -> ProgState ()
     handleControlFlow t = case t of
@@ -201,30 +198,32 @@ module Stack.Stack
         "times" -> handleTimes
         "each" -> handleEach
 
-
-
+    -- poping the execution line and execting it, and then pushing it to the stack
     handleExecution :: ProgState ()
     handleExecution = do
-        executionLine <- pop
-        let command = unWrap executionLine
-        let res = executeParsedCode command (M.empty :: AssignmentMap, [])
-        concatState res
-        return ()
+        preformOp <- checkStackLength (ControlFlow "exec") 1
+        if preformOp
+            then do
+                executionLine <- pop
+                let command = unWrap executionLine
+                let res = executeParsedCode command (M.empty :: AssignmentMap, [])
+                updateStack res
+                return ()
+            else do
+                return ()
 
-
+    -- checking if the varible exist, if it does get his value or execute 
+    --  if its not assign to it a value
     assignVariable :: StackLiteral -> ProgState ()
     assignVariable (Variable var) = do
-        push $ Literal $ Variable var
         assignmentMap <- getVarMap
         case M.lookup (Variable var) assignmentMap of
             Nothing -> do
-                -- let t = M.insert var (Variable "undefined element") assignmentMap
                 let t = M.insert (Variable var) ( Literal $ Variable var) assignmentMap
                 updateVar t
+                push $ Literal $ Variable var
                 return ()
             Just n -> do
-                -- poping the variable and inserting the value of it
-                pop
                 case n of
                     Exec stack -> do
                         (varMap,currentStack) <- get
@@ -236,123 +235,128 @@ module Stack.Stack
                         return ()
 
 
+    -- executing if statmen, if there are 3 elements in the stack
     handleIf :: ProgState ()
     handleIf = do
-        (_,currentStack) <- get
-        if length currentStack >= 3 
-            then (do
+        preformOp <- checkStackLength (ControlFlow "if") 3
+        Control.Monad.when preformOp $ do
             falseExec <- pop
             trueExec <- pop
             condition <- pop
-        -- TODO: error, if there are no two execution provide an error
             case condition of
                 Literal (StackBool True)  -> do
                     updateStack (executeParsedCode (unWrap trueExec) (M.empty :: AssignmentMap, []))
-                    stackManip
                     return ()
                 Literal (StackBool False) -> do
                     updateStack (executeParsedCode (unWrap falseExec) (M.empty :: AssignmentMap, []))
                     return ()
                 _ -> do
                     push condition
-                    push (Literal (StackString "if input error, you didn't provided bool condition")) -- handle error
-                    return ()) else do
-
-                        push (ControlFlow "if")
-                        return ()
-
+                    push (Error "if input error, you didn't provide bool condition") 
+                    return ()
+    
+    -- checking if there are 2 elements in the stack, 
+    -- if there are the function would pop two elements and pass them the the loop helper
     handleLoop :: ProgState ()
     handleLoop = do
-        preformOp <- checkStackLength (ControlFlow "loop") 2 
-        if preformOp
-            then do
+        preformOp <- checkStackLength (ControlFlow "loop") 2
+        Control.Monad.when preformOp $ do
                 loopBody <- pop
                 loopCondition <- pop
-                loop' loopBody loopCondition 
-            else do
+                loop' loopBody loopCondition
                 return ()
     
-    
+
+    -- executing the loop body until a bool condition is met 
     loop' :: StackElement -> StackElement -> ProgState ()
     loop' loopBody loopCondition = do
-        (varMap,currentStack) <- get 
+        (varMap,currentStack) <- get
         let loop = executeParsedCode (unWrap loopCondition) (varMap,currentStack)
         if last loop == Literal (StackBool False)
-            then do 
+            then do
                 let res = executeParsedCode (unWrap loopBody) (varMap,currentStack)
                 put(varMap, res )
                 loop' loopBody loopCondition
                 else do
-
                     return ()
-        
+
+    -- map over the elements and spread them into the stack 
     handleEach ::  ProgState ()
     handleEach = do
-        experssion <- pop
-        list <- pop
-        case list of
-            Literal (List x) -> do
-                let stackElements = map (\e ->  head $ executeParsedCode (unWrap experssion) ( M.empty :: AssignmentMap,[e] ) )  x
-                updateStack stackElements
-                return ()
-
-
+        preformOp <- checkStackLength (ControlFlow "each") 2
+        Control.Monad.when preformOp $ do
+            expression <- pop
+            list <- pop
+            let stackElements = map' list expression 
+            case stackElements of
+                Right elem-> updateStack elem
+                Left elem -> push elem
+                        
+    -- same as each, only adding the elements wraped in list
     handleMap ::  ProgState ()
     handleMap = do
-        experssion <- pop
-        list <- pop
-        case list of
-            Literal (List x) -> do
-                let literalList = map (\e ->  head $ executeParsedCode (unWrap experssion) ( M.empty :: AssignmentMap,[e] ))  x
-                push $ Literal $ List literalList
-                return ()
+        preformOp <- checkStackLength (ControlFlow "map") 2
+        Control.Monad.when preformOp $ do
+            expression <- pop
+            list <- pop
+            let literalList = map' list expression
+            case literalList of
+                Right elem-> push $ Literal $ List elem
+                Left elem -> push elem
+          
+    -- if a list and expression is been given, map over the list and return the result
+    map' :: StackElement -> StackElement -> Either Ops Stack 
+    map' (Literal (List list)) (Exec expression) = Right   ( map (\e ->  head $ executeParsedCode expression ( M.empty :: AssignmentMap,[e] ) ) list)
+    map' _ (Exec expression) = Left   (Error "Error: Expected a list")
+    map' (Literal (List list)) _ = Left (Error "Error: Expected a function")
+    map' _ _ =  Left (Error "Error: please provide a list and a function to each")
+
 
 
     handleFold ::  ProgState ()
     handleFold = do
-        op <- pop
-        acc <- pop
-        list <- pop
-        -- TODO: error, handle different error cases
-        case list of
-            Literal (List listLiteral) -> do
-                let res = fold' listLiteral op [acc]
-                updateStack res
-                return ()
-            _ -> push list
+        preformOp <- checkStackLength (ControlFlow "foldl") 3
+        Control.Monad.when preformOp $ do
+            op <- pop
+            acc <- pop
+            list <- pop
 
+            case list of
+                Literal (List listLiteral) -> do
+                    let res = fold' listLiteral op [acc]
+                    updateStack res
+                    return ()
+                _ -> push $ Error "Error: expected list for foldl"
 
+    -- executing each element on the list with the operation and inserting it into the stack
     fold' :: [StackElement] -> Ops -> Stack -> Stack
     fold' [] _ stack = stack
     fold' (x:xs) op stack =
         let foldStack = executeParsedCode (unWrap op) ( M.empty :: AssignmentMap,stack ++ [x] )
         in fold' xs op foldStack
 
-
+    
     handleTimes :: ProgState()
     handleTimes = do
-        expression <- pop
-        time <- popAndEval
-        case time of
-            Literal num -> do
-                let res = times num expression
-                updateStack res
-                return ()
+        preformOp <- checkStackLength (ControlFlow "times") 2
+        Control.Monad.when preformOp $ do
+            expression <- pop
+            time <- popAndEval
+            let res = times time expression
+            case res of 
+                Right elem -> updateStack elem
+                Left elem -> push elem
 
 
-
-    times :: StackLiteral -> StackElement -> Stack
-    times (StackInt num) (Exec expr) =
+    times :: StackElement  -> StackElement -> Either Ops Stack
+    times (Literal (StackInt num)) (Exec expr) =
         let timesWrapper (StackInt 0) _ stack = stack
             timesWrapper (StackInt num) (Exec expr) stack = timesWrapper (StackInt num - StackInt 1) (Exec expr) (stack ++ executeParsedCode expr ( M.empty :: AssignmentMap,[]))
         in
-            timesWrapper (StackInt num) (Exec expr) []
-    times _ expression = [] -- TODO: error handling
-    times (StackInt num) _ = [] -- TODO: error handling
+            Right (timesWrapper (StackInt num) (Exec expr) [])
+    times (Literal (StackInt num)) _ = Left $ Error "Error: expected an exprssion for times" 
+    times _ (Exec expr) = Left $ Error "Error: expected an int for times"
+    times _ _ = Left $ Error "Error: wrong arguments for times"
 
-    updateStack :: Stack -> ProgState ()
-    updateStack res = do
-        (varMap,stack) <- get
-        let evalTimes = executeParsedCode res (varMap,stack)
-        put(varMap,evalTimes)
+  
   

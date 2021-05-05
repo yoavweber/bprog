@@ -72,6 +72,7 @@ tests =
 
     {-- lists -}
     t "[ 1 2 3 ]"           "[1,2,3]"
+    -- this test might not make sense
     t "[ 1 \" bob \" ]"     "[1,\"bob\"]"
     t "[ 1 2 ] empty"       "False"
     t "[ ] empty"           "True"
@@ -87,13 +88,18 @@ tests =
     {-- list quotations -}
     t "[ 1 2 3 ] { 10 * } map"                              "[10,20,30]"
     t "[ 1 2 3 ] { 1 + } map"                               "[2,3,4]"
-    t "[ 1 2 3 4 ] { dup 2 > if { 10 * } { 2 * } } map"     "[2,4,30,40]"
-    t "[ 1 2 3 4 ] each { 10 * } + + +"                     "100"
+    t "[ 1 2 3 4 ] { dup 2 > { 10 * } { 2 * } if } map"     "[2,4,30,40]"
+    t "[ 1 2 3 4 ] { 10 * } each + + +"                     "100"
+    -- TODO: test this as an error
+    -- t "[ 1 2 3 4 ] { 10 * } "each" + + +"                     "100"
+
+      -- TODO: test this as an error 
+    -- t "[ 1 2 3 4 ] each { 10 * } + + +"                     "100"
     t "[ 1 2 3 4 ] 0  { + } foldl"                           "10"
     t "[ 2 5 ] 20 { div } foldl"                            "2"
     {-- note no { } needed for 1 instruction code -}
-    t "[ \" 1 \" \" 2 \" \" 3 \" ] each { parseInteger } [ ] cons cons cons" "[1,2,3]"
-    t "[ \" 1 \" \" 2 \" \" 3 \" ] each parseInteger [ ] 3 times cons"       "[1,2,3]"
+    t "[ \" 1 \" \" 2 \" \" 3 \" ] { parseInteger } each [ ] cons cons cons" "[1,2,3]"
+    t "[ \" 1 \" \" 2 \" \" 3 \" ]  parseInteger each [ ] 3 cons times"       "[1,2,3]"
     t "[ 1 2 3 4 ] 0 + foldl "                               "10"
     t "[ 2 5 ] 20 div foldl"                                "2"
 
@@ -118,55 +124,72 @@ tests =
     t "True { 20 } { } if"               "20"
     t "True { 20 10 + } { 3 } if"        "30"
     t "10 5 5 == { 10 + } { 100 + } if"  "20"
-    t "False if { } { 45 }"              "45"
-    t "True if { False if { 50 } { 100 } } { 30 }" "100"
+    t "False { } { 45 } if"              "45"
+    t "True  { False { 50 } { 100 } if } { 30 } if" "100"
 
     {-- if without quotation, more ergonomic expressions -}
-    t "True if 20 { }"                 "20"
-    t "True if { 20 10 + } 3"          "30"
-    t "10 10 5 5 == if + { 100 + }"    "20"
-    t "False if { } 45"                "45"
-    t "True if { False if 50 100 } 30" "100"
+    t "True 20 { } if"                 "20"
+    t "True { 20 10 + } 3 if"          "30"
+    t "10 10 5 5 == + { 100 + } if"    "20"
+    t "False { } 45 if"                "45"
+    t "True { False 50 100 if } 30 if" "100"
 
     {-- times -}
-    t "1 times { 100 50 + }"                               "150"
-    t "5 times { 1 } [ ] 5 times { cons } 0 foldl { + }"   "5"
-    t "5 times 1     [ ] 5 times   cons   0 foldl   +  "   "5"
-    t "5 times { 10 } + + + +"                             "50"
-    t "5 times 10 4 times +"                               "50"
+    t "1 { 100 50 + } times"                               "150"
+    t "5 { 1 } times [ ] 5 { cons } times 0  { + } foldl"   "5"
+    t "5  1 times [ ] 5 cons times  0 + foldl "            "5"
+    t "5 { 10 } times + + + +"                             "50"
+    t "5 10 times 4 + times"                               "50"
 
-    {-- loop -}
-    t "1 loop { dup 4 > } { dup 1 + } [ ] 5 times { cons }"         "[1,2,3,4,5]"
-    t "1 loop { dup 4 > } { dup 1 + } [ ] 5 times   cons  "         "[1,2,3,4,5]"
-    t "[ 1 ] loop { dup length 9 > }  { dup head 1 + swap cons }"   "[10,9,8,7,6,5,4,3,2,1]"
+    -- {-- loop -}
+    t "1 { dup 4 > } { dup 1 + } loop [ ] 5 { cons } times"         "[1,2,3,4,5]"
+    t "1 { dup 4 > } { dup 1 + } loop [ ] 5 cons times"         "[1,2,3,4,5]"
+    t "[ 1 ] { dup length 9 > }  { dup head 1 + swap cons } loop"   "[10,9,8,7,6,5,4,3,2,1]"
 
 
-    t "odd { dup 2 div swap 2 / == if False True } fun \
+    t "odd { dup 2 div swap 2 / == False True if } fun \
      \ 2 odd"                                                        "False"
 
-    t "odd { dup 2 div swap 2 / == if False True } fun \
+    t "odd { dup 2 div swap 2 / == False True if } fun \
      \ 3 odd"                                                        "True"
 
-    t "toList { [ ] swap times cons } fun \
+    t "toList { [ ] swap cons times } fun \
      \ 1 2 3 4 \
      \ 4 toList"                                                      "[1,2,3,4]"
 
-    t "gen1toNum { max swap := 1 loop { dup max > } { dup 1 + } } fun \
+    t "gen1toNum { max swap := 1  { dup max > } { dup 1 + } loop } fun \
      \ 3 gen1toNum + + +"                                            "10"
 
-    t "odd { dup 2 div swap 2 / == if False True } fun \
-     \ toList { [ ] swap times cons } fun \
-     \ gen1toNum { max swap := 1 loop { dup max > } { dup 1 + } } fun \
-     \ 4 gen1toNum 5 toList map odd"                            "[True,False,True,False,True]"
+testErrors :: SpecWith ()
+testErrors =
+  describe "Testing Errors" $ do
+    t "5 True + "                    "Error: can only preform arithmic operation on float or int"
+    t "3.2 True -"                   "Error: can only preform arithmic operation on float or int"
+    t "3.2 \" hey \" *"                "Error: can only preform arithmic operation on float or int"
+    t "False 5 &&"               "Error : can only perform logical operation on bool"
+    t "True \" 12 \" ||"               "Error : can only perform logical operation on bool"
+    t "5 not"            "Error: Can't preform not on not bool type"
+    t "10 \" 20 \" *"             "Error: can only preform arithmic operation on float or int"
+    t "[ 1 2 "                       "Prasing error: \"bprog parse\" (line 1, column 7):\nunexpected end of input\nexpecting \"]\""
+    t "{ 1 2 "                        "Prasing error: \"bprog parse\" (line 1, column 7):\nunexpected end of input\nexpecting error parsing curly brackets or \"}\""
+    t "age 10 := age 20 :="                 "Error: can't assign varible twice"
+    t "4 0 /"                       "Error: can't devide by zero"
+    t "2 { 10 * } map"                              "Error: Expected a list"
+    t "2 { 10 * } each + + +"                     "Error: can only preform arithmic operation on float or int"
+
+
 
 t :: String -> String -> Spec
 t i o = it i $ show (head (snd (executeCode i (M.empty :: AssignmentMap, [])))) `shouldBe` o
 
--- t i o = it "..." $ show $ (snd executeCode i (M.empty :: AssignmentMap, [])) `shouldBe` ["test"]
--- t i o = it i $ show $executeCode i (M.empty :: AssignmentMap, []) `shouldBe` o
+f [] = []
+f ('\n':' ':a) = f ('\n' : a)
+f (a:b) = a : f b
+
 
 main :: IO()
 main = do
     hspec $ do
         tests
+        testErrors
 

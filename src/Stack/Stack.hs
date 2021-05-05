@@ -10,10 +10,11 @@ module Stack.Stack
     import Operations.Arithmetic
     import Operations.ListOp(handleListOp)
     import Operations.Symbol
+    import Operations.StringOp
     import Stack.StateOps
     import Parser
 
-
+    ------------ Handling cotrol flow and execution ------------------
     -- Executing the state operation on the stack
     executeCode :: String -> (AssignmentMap, Stack) -> (AssignmentMap, Stack)
     executeCode line (varMap,previousStack) =
@@ -24,13 +25,13 @@ module Stack.Stack
     stackManip = do
         ergonomicManip
         (varMap,currentStack) <- get
-        case last currentStack of
-            Error err -> do
-                return ()
-            _ -> do
-                put (varMap,[])
-                changeState currentStack
-                (varMap,unevelStack) <- get
+        put (varMap,[])
+        changeState currentStack
+        (varMap,unevelStack) <- get
+        if StackIO "read" `elem` unevelStack 
+            then do
+            return ()
+            else do
                 let newStack = evalStack unevelStack varMap
                 put (varMap,[])
                 changeState newStack
@@ -105,6 +106,13 @@ module Stack.Stack
        -- Looping over each element in the stack evaluating it
     changeState :: Stack -> ProgState ()
     changeState [] = return ()
+    changeState ((StackIO "print"):xs) = do
+        handleIO
+        concatState xs
+        return () 
+    changeState ((StackIO e):xs) = do
+        concatState (StackIO e:xs)
+        return () 
     changeState (x:xs) = do
         handleTokens x
         changeState xs
@@ -115,10 +123,11 @@ module Stack.Stack
         Arithmetic t ->  handleAritmic  (Arithmetic t)
         StackOp t -> handleStackOp (StackOp t)
         ListOp t -> handleListOp t
-        StackIO _ -> handleIO
+        StackIO e -> push (StackIO e) 
         AssignmentOp t -> handleVariable t
         ControlFlow t -> handleControlFlow t
         Exec t -> push (Exec t)
+        StringOp t -> handleStringOp t
         Literal (Variable var) -> assignVariable (Variable var)
         Literal var -> push (Literal var)
         Error error -> push (Error error)
@@ -129,14 +138,13 @@ module Stack.Stack
     handleIO = do
         preformOp <- checkStackLength (StackIO "print") 1
         Control.Monad.when preformOp $ do
-            printElement <- pop
+            printElement <- popAndEval 
             varMap <- getVarMap
             push $ print' printElement varMap 
             return ()
     
     print' :: StackElement -> AssignmentMap  -> StackElement 
     print' (Literal (StackString e)) _ = StackIO e
-    print' (Literal (Variable e)) varMap =  print' ( getVarValue (Literal (Variable e)) varMap) varMap
     print' _ _ = Error "can't print a nonstring element"
 
     ---------------------- evaluate varible -----------------
@@ -145,6 +153,7 @@ module Stack.Stack
     evalStack [] _ = []
     evalStack (maybeVar:stack) assignmentMap = case maybeVar of
         Literal maybeVar -> eval maybeVar assignmentMap : evalStack stack assignmentMap
+        StackIO "read" -> maybeVar:stack
         _  -> maybeVar:evalStack stack assignmentMap
 
 
@@ -320,7 +329,6 @@ module Stack.Stack
             op <- pop
             acc <- pop
             list <- pop
-
             case list of
                 Literal (List listLiteral) -> do
                     let res = fold' listLiteral op [acc]
@@ -351,7 +359,7 @@ module Stack.Stack
     times :: StackElement  -> StackElement -> Either Ops Stack
     times (Literal (StackInt num)) (Exec expr) =
         let timesWrapper (StackInt 0) _ stack = stack
-            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper (StackInt num - StackInt 1) (Exec expr) (stack ++ executeParsedCode expr ( M.empty :: AssignmentMap,[]))
+            timesWrapper (StackInt num) (Exec expr) stack = timesWrapper (StackInt (num - 1)) (Exec expr) (stack ++ executeParsedCode expr ( M.empty :: AssignmentMap,[]))
         in
             Right (timesWrapper (StackInt num) (Exec expr) [])
     times (Literal (StackInt num)) _ = Left $ Error "Error: expected an exprssion for times" 

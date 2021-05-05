@@ -29,10 +29,9 @@ library
   exposed-modules:
       Operations.Arithmetic
       Operations.ListOp
-      Operations.Logical
       Operations.StackOp
       Operations.Symbol
-      Operations.ControlFlow
+      Operations.StringOp
       Parser
       Stack.Stack
       Stack.StateOps
@@ -48,6 +47,8 @@ library
     , containers
     , mtl
     , split
+    , parsec
+    , text
   default-language: Haskell2010
 
 executable bprog-exe
@@ -63,6 +64,8 @@ executable bprog-exe
         , mtl
     , split
     , containers
+    , parsec
+    , text
   default-language: Haskell2010
 
 test-suite bprog-test
@@ -79,4 +82,5 @@ test-suite bprog-test
     , containers
     , hspec
     , mtl
+    , text
   default-language: Haskell2010

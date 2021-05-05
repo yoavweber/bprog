@@ -2,19 +2,14 @@ module Parser where
     import Text.Read (readMaybe)
     import Types
     import Data.List
+    import Data.Char(isSpace)
 
     import Control.Monad
     import Numeric
 
-    -- import Data.List.Split
     import Text.ParserCombinators.Parsec hiding (spaces)
 
 
-
-
-
-    -- slice :: Int -> Int -> [a] -> [a]
-    -- slice start stop xs = fst $ splitAt (stop - start) (snd $ splitAt start xs)
 
     trim :: [Char] -> [Char]
     trim = dropWhileEnd isSpace . dropWhile isSpace
@@ -22,36 +17,24 @@ module Parser where
     symbol :: Parser Char
     symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
+    ------- parser
     parseLine :: String -> Stack 
     parseLine input = case parseStack input of
-        Left err -> [Error ("No match: " ++ show err)]
+        Left err -> [Error ("Prasing error: " ++ show err)]
         Right val ->  val
 
     spaces:: Parser()
     spaces = skipMany space
 
-    parseString :: Parser StackLiteral
-    parseString = do
-        char '"'
-        x <- many (noneOf "\"")
-        char '"'
-        return $  StackString x
-
-
-    parseVarible :: Parser StackLiteral
+    -- check that the verible is not any of the word of the other parser
+    -- if its not, allow it as a varible
+    parseVarible :: Parser StackElement 
     parseVarible = do
         first <- letter <|> symbol
         rest <- many (letter <|> digit <|> symbol)
         let var = first:rest
-        return $ Variable var 
-
-    parseFloat :: Parser StackLiteral
-    parseFloat = do
-        first <- many1 digit
-        char '.'
-        rest <- many1 digit
-        let float = first ++ ('.':rest)
-        return $ StackFloat (read float :: Float)  
+        return  (Literal (Variable var))
+    
 
     parseString :: Parser StackLiteral
     parseString = do
@@ -76,7 +59,7 @@ module Parser where
 
     parseInt :: Parser StackLiteral
     parseInt = do
-        n <- try pPos <|> pNeg
+        n <- try (pPos <|> pNeg )
         return $  StackInt n  
 
     pNegFloat :: Parser Float 
@@ -99,107 +82,109 @@ module Parser where
         n <- pFloat <|> pNegFloat
         return $ StackFloat n
 
-    parseNumber :: Parser Ops
-    parseNumber = liftM (Literal . StackInt . read) $ many1 digit
+    parseBool :: Parser StackLiteral 
+    parseBool = do
+        bool <- try (string "False" <|> string "True")
+        return $ StackBool (read bool :: Bool) 
 
-    -- handleList :: Parser StackLiteral
-    handleList =  endBy parseLiteral spaces
+    handleList :: Parser Stack
+    handleList =  endBy (parseAll <?> "") spaces
 
-    -- TODO: rise an error to stack
     parseList :: Parser StackLiteral
     parseList = do
+        spaces
         char '[' 
         char ' ' 
         x <- try handleList
         char ']'
+        spaces
         return (List x)
 
 
-    -- handleBracketsList :: Parser Stack
-    handleBracketsList = endBy parseAll spaces
+    handleBracketsList :: Parser Stack
+    handleBracketsList = endBy (parseAll <?> "error parsing curly brackets") spaces
 
-
-    parseBracketsList :: Parser Ops  
+    parseBracketsList :: Parser StackElement   
     parseBracketsList = do
+        spaces
         char '{' 
         char ' ' 
         x <- try handleBracketsList
         char '}'
+        spaces
         return (Exec x)
 
 
-    parseIf :: Parser Ops
+    parseIf :: Parser StackElement 
     parseIf = do 
         op <- try (string "if" <|>  string "exec" <|> string "loop")
         return (ControlFlow op)
 
+    parseListOps :: Parser StackElement 
     parseListOps = do
         op <- try (string "map" <|> string "foldl" <|> string "times" <|> string "each" )
         return (ControlFlow op)
 
-    parseAssignment :: Parser Ops
+    parseAssignment :: Parser StackElement 
     parseAssignment = do
         op <- try (string ":=" <|> string "fun" )
         return (AssignmentOp op)
     
 
-    parseStackOp :: Parser Ops
+    parseStackOp :: Parser StackElement 
     parseStackOp = do 
         op <- try (string "pop" <|> string "swap" <|> string "dup")
         return (StackOp op)
 
-    parseListOp :: Parser Ops 
+    parseListOp :: Parser StackElement  
     parseListOp = do
         op <- try (string "head" <|> string "tail" <|> string "empty" <|> string "length" <|> string "cons" <|> string "append")
         return (ListOp op)
 
-    stringParsing :: Parser Ops
+    stringParsing :: Parser StackElement 
     stringParsing =  parseStringFloat <|> parseStringInt <|> parseWords
        
 
-        -- TODO: change aritmic type
-        -- return $ Arithmetic op
-    parseWords :: Parser Ops
+    parseWords :: Parser StackElement 
     parseWords = do
         op <- try (string "words" )
-        -- TODO: change aritmic type
-        return $ Arithmetic op
+        return $ StringOp op
 
 
-    parseStringFloat :: Parser Ops
+    parseStringFloat :: Parser StackElement 
     parseStringFloat = do
         op <- try (string "parseFloat" )
-        -- TODO: change aritmic type
-        return $ Arithmetic op
+        return $ StringOp op
 
-    parseStringInt :: Parser Ops
+    parseStringInt :: Parser StackElement 
     parseStringInt = do
         op <- try (string "parseInteger" <|> string "words")
-        -- TODO: change aritmic type
-        return $ Arithmetic op
+        return $ StringOp op
 
-    parseArithmetic :: Parser Ops
+    parseArithmetic :: Parser StackElement 
     parseArithmetic = do
-        op <- string "+" <|> string "-" <|> string "*" <|> string "==" <|> string "div" <|> string "/"
+        op <- try (string "+" <|> string "-" <|> string "*" <|> string "==" <|> string "div" <|> string "/" <|> string "<" <|> string ">" <|> string "not" <|> string "||" <|> string "&&")
         return (Arithmetic op)
 
-    parseIO :: Parser Ops
+    parseIO :: Parser StackElement 
     parseIO = do
-        op <- string "print" 
+        op <- try (string "print" <|> string "read")
         return (StackIO op)
 
-    parseLiteral :: Parser StackLiteral
-    parseLiteral =  parseString 
-                <|> parseBool
-                <|> try parseFloat 
-                <|> parseInt
-                <|> parseList
-                <|> parseVarible
+
+    parseLiteral :: Parser StackElement 
+    parseLiteral =  Literal <$> parseString 
+                <|> Literal <$> parseBool
+                <|> Literal <$> try parseFloat
+                <|> Literal <$> parseInt
+                <|> Literal <$> parseList
 
     handleSpace = do
         endBy parseAll spaces
 
     parseAll = parseIf
+            <|> parseLiteral
+            <|> parseListOps
             <|> stringParsing
             <|> parseIO
             <|> parseAssignment
@@ -207,7 +192,8 @@ module Parser where
             <|> parseStackOp
             <|> parseListOp
             <|> parseBracketsList
-            <|> Literal <$> parseLiteral
+            <|> parseVarible
+    
         
 
     parseStack = parse(handleSpace <* eof) "bprog parse"

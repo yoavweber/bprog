@@ -1,39 +1,82 @@
+{-# LANGUAGE RankNTypes #-}
 module Operations.Arithmetic where
     import Control.Monad.State
+    import Control.Monad
+
     import qualified Data.Map.Strict as M
 
-    import Stack.StateOps(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push)
+    import Stack.StateOps(pop, popFromEnd,push,getVarMap,popAndEval,stackIsEmpty,push,checkStackLength)
     import Types
     import Text.Read(readMaybe)
+
+    type OpArithmitic = StackElement -> StackElement -> (forall a. (Num a) => a -> a -> a) -> StackElement 
+    type OpBool =  StackElement -> StackElement -> (forall a. (Num a) => a -> a -> Bool) -> StackElement 
 
     -- TODO: try to create a generic function which getting as an input the operation
     handleAritmic :: StackElement -> ProgState ()
     handleAritmic t = case t of
-        Arithmetic "+" -> opAdd
-        Arithmetic "div" -> op div'
-        Arithmetic "/" -> op divFrac
-        Arithmetic "==" -> opEq
-        Arithmetic "*" -> opMult 
-        Arithmetic "-" -> opMin
-        Arithmetic "<" -> opBool (<)
-        Arithmetic ">" -> opBool (>)
-        Arithmetic "parseFloat" -> parseFloat
-        Arithmetic "parseInteger" -> parseInt
-        Arithmetic "words" -> stackWords
-        -- otherwise ->  put [Arithmetics "1"]
+        Arithmetic "+" ->  handleOp  "+" (+)
+        Arithmetic "*" ->  handleOp  "*" (*) 
+        Arithmetic "-" ->  handleOp  "-" (-)
+        Arithmetic "div" -> handleDiv div'  "div"
+        Arithmetic "/" -> handleDiv divFrac  "/"
+        Arithmetic "==" ->  handleBool "==" (==)
+        Arithmetic "<" ->  handleBool "<" (<)
+        Arithmetic ">" ->  handleBool ">" (>)
+        Arithmetic "&&" -> handleLogic "&&" (&&)
+        Arithmetic "||" -> handleLogic "||" (||)
+        Arithmetic "not" -> handleNot
 
-    op :: (StackElement   -> StackElement  -> StackElement  ) ->  ProgState ()
-    op f = do
-        (ignore,stack) <- get
-        if length stack < 2 then do 
-            push (Arithmetic "*")
-            return ()
-        else do 
+    handleOp ::  String -> (forall a. (Num a) => a -> a -> a)  ->  ProgState ()
+    handleOp  opString op = do
+        preformOp <- checkStackLength (Arithmetic opString) 2
+        Control.Monad.when preformOp $ do
             a <- popAndEval
             b <- popAndEval
-            let res = f a  b
+            let res = opArithmitic a b op 
             push res
             return ()
+
+    handleDiv :: (StackElement -> StackElement -> StackElement ) -> String -> ProgState ()
+    handleDiv f opString = do
+        preformOp <- checkStackLength (Arithmetic opString) 2
+        Control.Monad.when preformOp $ do
+            a <- popAndEval
+            b <- popAndEval
+            let res = f a b 
+            push res
+            return ()
+
+    handleBool ::  String -> (forall a. (Ord a) => a -> a -> Bool)  ->  ProgState ()
+    handleBool  opString op = do
+        preformOp <- checkStackLength (Arithmetic opString) 2
+        Control.Monad.when preformOp $ do
+            a <- popAndEval
+            b <- popAndEval
+            let res = opBool a b op 
+            push res
+            return ()
+
+    handleLogic ::  String -> (Bool  -> Bool  -> Bool )  ->  ProgState ()
+    handleLogic opString f  = do
+        preformOp <- checkStackLength (Arithmetic opString) 2
+        Control.Monad.when preformOp $ do
+            a <- popAndEval
+            b <- popAndEval
+            let res = opLogic a b f
+            push res
+            return ()
+  
+
+    handleNot :: ProgState ()
+    handleNot = do 
+        preformOp <- checkStackLength (Arithmetic "not") 1
+        Control.Monad.when preformOp $ do
+            a <- popAndEval
+            let res = not' a
+            push res
+            return ()
+  
 
     parseFloat :: ProgState ()
     parseFloat = do
@@ -79,88 +122,58 @@ module Operations.Arithmetic where
                 push $ Error  "could not use function words on non-string type"
 
 
-    opBool :: (StackElement   -> StackElement  -> Bool  ) ->  ProgState ()
-    opBool f = do
-        (ignore,stack) <- get
-        if length stack < 2 then do 
-            push (Arithmetic "*")
-            return ()
-        else do 
-            a <- popAndEval
-            b <- popAndEval
-            let res = f a  b
-            push $ Literal (StackBool res)
-            return ()
-    
+  
+   
+    opArithmitic :: StackElement -> StackElement -> (forall a. (Num a) => a -> a -> a) -> StackElement 
+    opArithmitic (Literal (StackInt a)) (Literal (StackInt b)) f = Literal $ StackInt $ f b a
+    opArithmitic (Literal (StackInt a)) (Literal (StackFloat b)) f = Literal $ StackFloat $  f b $ fromIntegral a
+    opArithmitic (Literal (StackFloat b)) (Literal (StackInt a)) f = Literal $ StackFloat $  f b $ fromIntegral a
+    opArithmitic (Literal (StackFloat a)) (Literal (StackFloat b)) f = Literal $ StackFloat $  f b a
+    opArithmitic (Literal (StackFloat a)) _ _ = Error "Error: can only preform arithmic operation on float or int"
+    opArithmitic (Literal (StackInt a)) _ _ = Error "Error: can only preform arithmic operation on float or int"
+    opArithmitic _ _ _ = Error "Error: can only preform arithmic operation on float or int"
+
+
+    opBool :: StackElement -> StackElement -> (forall a. (Ord a) => a -> a -> Bool) -> StackElement 
+    opBool (Literal (StackInt a)) (Literal (StackInt b)) f = Literal $ StackBool $ f b a
+    opBool (Literal (StackInt a)) (Literal (StackFloat b)) f = Literal $ StackBool $ f b $ fromIntegral a
+    opBool (Literal (StackFloat a)) (Literal (StackInt b)) f = Literal $ StackBool $ f (fromIntegral b) a 
+    opBool (Literal (StackFloat a)) (Literal (StackFloat b)) f = Literal $ StackBool $ f b a
+    opBool (Literal (StackBool a)) (Literal (StackBool b)) f = Literal $ StackBool $ f b a
+    opBool (Literal (StackString a)) (Literal (StackString b)) f = Literal $ StackBool $ f b a
+    opBool  (Literal (List a)) (Literal (List b)) f = Literal $ StackBool $ f b a
+    opBool (Literal (StackFloat a)) _ _ = Error "Error: can only preform arithmic operation on float or int"
+    opBool (Literal (StackInt a)) _ _ = Error "Error: can only preform arithmic operation on float or int"
+    opBool _ _ _ = Error "Error: can only preform arithmic operation on float or int"
 
     
-    -- TODO: create a gloabl stack function that check if stack is empty
-    
-    opMult :: ProgState ()
-    opMult = do
-        (ignore,stack) <- get
-        case length stack < 2 of 
-            True -> do 
-                push (Arithmetic "*")
-                return ()
-            False -> do
-                a <- popAndEval
-                b <- popAndEval 
-                let res =  a * b
-                push res
-                -- put (ignore, newStack)
-                return()
+    opLogic :: StackElement -> StackElement -> (Bool -> Bool -> Bool) -> StackElement 
+    opLogic (Literal (StackBool a)) (Literal (StackBool b)) f = Literal (StackBool (f a b)) 
+    opLogic _ _ _ = Error "Error : can only perform logical operation on bool" 
 
+    not' :: StackElement -> StackElement
+    not' (Literal (StackBool a)) = Literal (StackBool (not a)) 
+    not' _ = Error "Error: Can't preform not on not bool type" 
 
-        -- if there is not enough element, push it as execution that would be trigerd on another element
-    opMin :: ProgState ()
-    opMin = do
-        (ignore,stack) <- get
-        case length stack < 2 of 
-            True -> do 
-                -- TODO: error, push error instead
-                push (Arithmetic "-")
-                return ()
-            False -> do
-                a <- popAndEval
-                b <- popAndEval 
-                let res =  b - a 
-                push res
-                return()                        
-    
-
-    -- if there is not enough element, push it as execution that would be trigerd on another element
-    opAdd :: ProgState ()
-    opAdd = do
-        (ignore,stack) <- get
-        case length stack < 2 of 
-            True -> do 
-                push (Arithmetic "+")
-                return ()
-            False -> do
-                a <- popAndEval
-                b <- popAndEval 
-                let res =  a + b
-                push res
-                return()
-            
-
-    opEq :: ProgState ()
-    opEq = do
-        a <- popAndEval
-        b <- popAndEval
-        let res = a == b
-        case res of
-            False -> push (Literal (StackBool False))
-            otherwise -> push (Literal (StackBool True))
 
 
     div' :: StackElement -> StackElement -> StackElement 
-    div' (Literal (StackInt a)) 0 = Literal (StackString "can't devide by zero") -- TODO: error, 
-    div' (Literal (StackInt a)) (Literal (StackInt b)) = Literal $ StackInt $ fromInteger $  toInteger b  `div` toInteger  a
-    div' _ _ = Literal (StackString "can't devide by this type") -- TODO: error, 
+    div' (Literal (StackInt 0)) _  = Error "Error: can't devide by zero" 
+    div' (Literal (StackFloat 0)) _  = Error "Error: can't devide by zero" 
+    div' (Literal (StackInt a)) (Literal (StackInt b)) = Literal $ StackInt $ b `div` a
+    div' (Literal (StackInt a)) (Literal (StackFloat b)) = Literal $ StackInt $ round b `div`  a
+    div' (Literal (StackFloat a)) (Literal (StackFloat b)) = Literal $ StackInt $ round b `div` round a
+    div' (Literal (StackFloat a)) (Literal (StackInt b)) = Literal $ StackInt $ b `div` round a
+    div' _ _ = Error "Error: can't devide by this type" 
 
 
     divFrac :: StackElement -> StackElement -> StackElement 
-    divFrac (Literal (StackInt a)) 0 = Literal (StackString "can't devide by zero")
+    divFrac (Literal (StackFloat 0)) _  = Error "Error: can't devide by zero"
+    divFrac (Literal (StackInt 0)) _  = Error "Error: can't devide by zero"
     divFrac (Literal (StackFloat a)) (Literal (StackFloat b)) = Literal $ StackFloat $ b / a
+    divFrac (Literal (StackFloat a)) (Literal (StackInt b)) = Literal $ StackFloat $ fromIntegral b / a
+    divFrac (Literal (StackInt a)) (Literal (StackFloat b)) = Literal $ StackFloat $ b / fromIntegral a
+    divFrac (Literal (StackInt a)) (Literal (StackInt b)) = Literal $ StackFloat $ fromIntegral b / fromIntegral a
+    divFrac _ _ = Error "Error: can't devide by this type" 
+
+

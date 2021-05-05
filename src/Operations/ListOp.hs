@@ -2,6 +2,8 @@ module Operations.ListOp(handleListOp) where
     import Control.Monad.State
     import qualified Data.Map.Strict as M
     import Data.List(genericLength)
+    import Control.Monad
+
 
 
     import Stack.StateOps(pop, push,checkStackLength)
@@ -19,73 +21,68 @@ module Operations.ListOp(handleListOp) where
         "append" -> handleAppend
 
 
-
-
     handleHead ::  ProgState ()
     handleHead  = do
-        list <- pop
-        push $ head' list
-        return ()
+        preformOp <- checkStackLength (ListOp "head") 1
+        Control.Monad.when preformOp $ do
+            list <- pop
+            push $ head' list
+            return ()
 
     handleTailOp :: ProgState ()
     handleTailOp = do
         preformOp <- checkStackLength (ListOp "tail") 1
-        if preformOp
-            then do
-                list <- pop
-                push $  tail' list
-                else do
-                    return ()
+        Control.Monad.when preformOp $ do
+            list <- pop
+            push $  tail' list
+              
 
     handleLength :: ProgState ()
     handleLength = do
         preformOp <- checkStackLength (ListOp "length") 1
-        if preformOp
-            then do
-                list <- pop
-                push $ length' list
-                else do
-                    return ()
+        Control.Monad.when preformOp $ do
+            list <- pop
+            push $ length' list
+                
 
     handleEmpty :: ProgState ()
     handleEmpty = do
-        list <- pop
-        if length' list == Literal (StackInt 0)
-            then do
-                push $ Literal(StackBool True)
-                return ()
-                else do
-                    push $ Literal(StackBool False)
+        preformOp <- checkStackLength (ListOp "empty") 1
+        Control.Monad.when preformOp $ do
+            list <- pop
+            if length' list == Literal (StackInt 0)
+                then do
+                    push $ Literal(StackBool True)
                     return ()
+                    else do
+                        push $ Literal(StackBool False)
+                        return ()
 
     handleCons :: ProgState ()
     handleCons = do
-        (_,stack) <- get
-        if length stack < 2
-            then do
-                push $ ListOp "cons"
-                return ()
-                else do
-                    list <- pop
-                    elem <- pop
-                    case elem of
-                        Literal x -> do
-                            push $ cons' list (Literal x)
-                            return  ()
-                        _  -> do
-                            push $ Error "you tried to con wrong element(do better error handling)"
-                            return ()
+        preformOp <- checkStackLength (ListOp "cons") 2
+        Control.Monad.when preformOp $ do
+            list <- pop
+            elem <- pop
+            case elem of
+                Literal x -> do
+                    push $ cons' list (Literal x)
+                    return  ()
+                _  -> do
+                    push $ Error "you tried to con wrong element(do better error handling)"
+                    return ()
 
     handleAppend :: ProgState ()
     handleAppend = do
         preformOp <- checkStackLength (ListOp "append") 2
-        if preformOp
-            then do
-                list2 <- pop
-                list1 <- pop
-                push $ append' list1 list2
-                else do
-                    return ()
+        Control.Monad.when preformOp $ do
+            if preformOp
+                then do
+                    list2 <- pop
+                    list1 <- pop
+                    push $ append' list1 list2
+                    else do
+                        return ()
 
 
 

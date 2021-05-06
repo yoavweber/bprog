@@ -35,8 +35,6 @@ library
       Parser
       Stack.Stack
       Stack.StateOps
-      Stack.Exec
-      TokenType
       Types
   other-modules:
       Paths_bprog

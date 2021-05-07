@@ -25,6 +25,7 @@ module Main where
             let (t,newStack) = executeCode "" (newVarMap,handleReadStack)
             let (io,stack) = splitFilter newStack
             mapM_ print io
+            print stack
             handleInterpreter (newVarMap,stack)
 
     -- file exection main function
@@ -106,15 +107,3 @@ module Main where
        putStrLn "\n\nWelcome to bprog\n" 
        welcomeFunction
 
-
-    
-
-
-
-
-        -- print (unwords $ words $ unwords $ lines readContent, "parsed input")
-
-        -- let (newVarMap,newStack) = executeCode (unwords $ words $ unwords $ lines readContent) (M.empty :: AssignmentMap, [])
-        -- print (newStack, "before handling read")
-
-        -- updateState (M.empty :: AssignmentMap, []) True

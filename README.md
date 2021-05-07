@@ -20,4 +20,7 @@ To test:
 
 If for any reason the program does not compile, please contect me directly
 
+## Side Note
+Before submission, I usally remove all unnecessary comments and prints function that I use for debugging.
 
+I accidentally deleted one print to much, which actually printing the interpreter result. Therefor I pushed another commit with this print function after the deadline.
